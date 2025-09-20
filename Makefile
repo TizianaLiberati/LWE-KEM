@@ -1,6 +1,6 @@
 #Per runnare il docker; fai exec dopo che il docker è start
 
-DIR=C:\Users\tiziana.liberati\dockers\ProgettoTesi
+DIR=C:\Users\tiziana.liberati\dockers\LWE-KEM
 
 image:
 	docker build . -t kemopenfhe
