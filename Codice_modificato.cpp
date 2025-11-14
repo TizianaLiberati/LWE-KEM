@@ -11,18 +11,11 @@
 using simple_sha256::i32_to_le_bytes;
 using simple_sha256::sha256_bytes;
 
-/*
-    Calcoli modulari: riduco a modulo b
-*/
 int mod(int a, int b)
 {
     return (a % b + b) % b;
 }
 
-// Funzione di HASH
-/*
-    SHA256 prende in input un messaggio di lunghezza variabile e restituisce una stringa di 256 bit
-*/
 static std::vector<int32_t> SHA256(const std::vector<int32_t> &in)
 {
     std::vector<uint8_t> bytes;
@@ -42,9 +35,6 @@ static std::vector<int32_t> SHA256(const std::vector<int32_t> &in)
     return out;
 }
 
-/*
-    Concateno due vettori a e b = a||b
-*/
 std::vector<int32_t> concat(const std::vector<int32_t> &a, const std::vector<int32_t> &b)
 {
     std::vector<int32_t> out;
@@ -56,9 +46,6 @@ std::vector<int32_t> concat(const std::vector<int32_t> &a, const std::vector<int
     return out;
 }
 
-/*
-    Scrivo una matrica A in forma di vettore
-*/
 std::vector<int32_t> flatten_matrix(const std::vector<std::vector<int32_t>> &A)
 {
     std::vector<int32_t> out;
@@ -72,13 +59,10 @@ std::vector<int32_t> flatten_matrix(const std::vector<std::vector<int32_t>> &A)
     return out;
 }
 
-/*
-    Faccio un sampling a partire da una distribuzione gaussiana discreta di deviazione standard sigma
-*/
 int32_t sample_discrete_gaussian(double sigma)
 {
     static std::random_device rd;
-    static std::mt19937 gen(rd()); // mt19937 è un PRNG non crittografico
+    static std::mt19937 gen(rd());
     std::normal_distribution<double> norm(0.0, sigma);
 
     double x = norm(gen);
@@ -98,23 +82,17 @@ int32_t sample_discrete_gaussian(double sigma)
     return static_cast<int32_t>(k);
 }
 
-/*
-    Creo un vettore lungo n a partire da una distribuzione gaussiana con deviazione standard pari a 2.3
-*/
 std::vector<int32_t> GenerateGaussianVector(size_t n)
 {
     std::vector<int32_t> vec;
     vec.reserve(n);
     for (size_t i = 0; i < n; ++i)
     {
-        vec.push_back(sample_discrete_gaussian(2.3)); // impongo stddev = 2.3
+        vec.push_back(sample_discrete_gaussian(2.3));
     }
     return vec;
 }
 
-/*
-    Prendo in modo random un intero compreso tra un massimo e un minimo
-*/
 int32_t getRandomInt(int min, int max)
 {
     static std::random_device rd;
@@ -123,9 +101,6 @@ int32_t getRandomInt(int min, int max)
     return distr(gen);
 }
 
-/*
-    Prendo in modo random una matrice quadrata con valori compresi tra 0 e maxValue (dopo lo porrò pari a q-1)
-*/
 std::vector<std::vector<int32_t>> GenerateRandomMatrixInt32(size_t n, int32_t maxValue)
 {
     std::random_device rd;
@@ -145,9 +120,6 @@ std::vector<std::vector<int32_t>> GenerateRandomMatrixInt32(size_t n, int32_t ma
     return matrix;
 }
 
-/*
-    Calcolo la trasposta di una matrice
-*/
 void transposeA(const std::vector<std::vector<int32_t>> &A,
                 std::vector<std::vector<int32_t>> &AT)
 {
@@ -158,10 +130,6 @@ void transposeA(const std::vector<std::vector<int32_t>> &A,
             AT[j][i] = A[i][j];
 }
 
-/*
-    Faccio un sampling a partire da una distribuzione binomiale centrata. Avrò valori interi che variano tra {-eta, eta}.
-    Serve come subroutine per sample_vector_binomial
-*/
 int32_t sample_eta_centered_binomial(uint8_t eta, std::mt19937 &gen)
 {
     std::uniform_int_distribution<uint8_t> dis(0, 1);
@@ -174,9 +142,6 @@ int32_t sample_eta_centered_binomial(uint8_t eta, std::mt19937 &gen)
     return (int32_t)sum1 - (int32_t)sum2;
 }
 
-/*
-    Creo un vettore lungo n a partire da una distribuzione binomiale centrata. Avrò valori interi che variano tra {-3, 3}
-*/
 std::vector<int32_t> sample_vector_binomial(uint32_t n)
 {
     std::random_device rd;
@@ -184,29 +149,33 @@ std::vector<int32_t> sample_vector_binomial(uint32_t n)
     std::vector<int32_t> result;
     result.reserve(n);
     for (uint32_t i = 0; i < n; ++i)
-        result.push_back(sample_eta_centered_binomial(3, gen)); // impongo eta = 3
+        result.push_back(sample_eta_centered_binomial(3, gen));
     return result;
 }
 
-// Generiamo la chiave pubblica e privata
 /*
-    La funzione KeyGen prende in INPUT:
-    - n: numero di bit
-    - q: modulo
-    - A: parte della chiave pubblica (da riempire)
-    - s: chiave segreta (da riempire)
-    - t: parte della chiave pubblica (da riempire)
-
-    Restituisce in OUTPUT:
-    - A
-    - t
+    https://github.com/pq-crystals/dilithium/blob/master/ref/randombytes.c
+    qui generano bit random in modo crittograficamente sicuro, nel mio caso mt19937 è random ma non compatibile con richieste di sicurezza in crittografia
 */
-void KeyGen(uint32_t n, uint32_t q, std::vector<std::vector<int32_t>> &A, std::vector<int32_t> &s, std::vector<int32_t> &t)
+
+void KeyGen(uint32_t n, uint32_t q, std::vector<std::vector<int32_t>> &A, std::vector<int32_t> &s_k, std::vector<int32_t> &t)
 {
-    A = GenerateRandomMatrixInt32(n, q - 1);            // la matrice A (pubblica) è random con valori compresi tra [0, q-1]
-    s = sample_vector_binomial(n);                      // secret key
-    std::vector<int32_t> e = GenerateGaussianVector(n); // error
+    // FATTI:
+    // 1) crea z lungo 256
+    // 2) concatena s con z
+    // 3) in Decrypt considera solo s e non anche z (togli gli ultimi 256 bit relativi a z)
+
+    A = GenerateRandomMatrixInt32(n, q - 1);
+    std::vector<int32_t> s = sample_vector_binomial(n);
+    std::vector<int32_t> e = GenerateGaussianVector(n);
     std::vector<int32_t> prod(n, q);
+
+    std::vector<int32_t> z(256); //256 bits
+    for (int i = 0; i < 256; ++i)
+        z[i] = getRandomInt(0, 1);
+
+    // secret key s_k data dalla concat di s e z
+    s_k = concat(s, z);
 
     for (uint32_t i = 0; i < n; ++i)
     {
@@ -222,17 +191,12 @@ void KeyGen(uint32_t n, uint32_t q, std::vector<std::vector<int32_t>> &A, std::v
 
     for (uint32_t i = 0; i < n; ++i)
     {
-        t1[i] = mod(prod[i] + e[i], q); // t = A*s + e
+        t1[i] = mod(prod[i] + e[i], q);
     }
 
     t = t1;
-    // (A, t)
 }
 
-// Restituiamo la cifratura di un singolo bit del plaintext
-/*
-    La funzione Encrypt cifra un bit alla volta e, per ogni singolo bit, restituisce un ciphertext dato dalla coppia (u,v)
-*/
 void Encrypt(uint32_t n, uint32_t q, std::vector<int32_t> &t, std::vector<int32_t> &u, int32_t &v_i, uint32_t plaintext_i, std::vector<int32_t> &r, std::vector<int32_t> &e1, int32_t &e2, const std::vector<std::vector<int32_t>> &AT)
 {
     std::vector<int32_t> prod(n, q);
@@ -242,14 +206,14 @@ void Encrypt(uint32_t n, uint32_t q, std::vector<int32_t> &t, std::vector<int32_
         prod[i] = 0;
         for (uint32_t j = 0; j < n; ++j)
         {
-            prod[i] = mod(prod[i] + AT[i][j] * r[j], q); // A^T*r
+            prod[i] = mod(prod[i] + AT[i][j] * r[j], q);
         }
     }
 
     std::vector<int32_t> u1(n, q);
     for (uint32_t i = 0; i < n; ++i)
     {
-        u1[i] = mod(prod[i] + e1[i], q); // A^T*r + e1
+        u1[i] = mod(prod[i] + e1[i], q);
     }
     u = u1;
 
@@ -257,23 +221,37 @@ void Encrypt(uint32_t n, uint32_t q, std::vector<int32_t> &t, std::vector<int32_
     int32_t risultato = 0;
     for (size_t i = 0; i < t.size(); ++i)
     {
-        risultato = mod(risultato + t[i] * r[i], q); // t^T*r
+        risultato = mod(risultato + t[i] * r[i], q);
     }
-    v1 = mod(risultato + e2 + plaintext_i, q); // t^T*r + e2 + [q/2]*m
+    v1 = mod(risultato + e2 + plaintext_i, q);
     v_i = v1;
 }
 
-// Restituisce il ciphertext di tutto il messaggio e una chiave condivisa Hash_K
-void Encaps(uint32_t n, uint32_t q, std::vector<int32_t> &t, const std::vector<int32_t> &plaintext, std::vector<int32_t> &c, std::vector<int32_t> &Hash_K, std::vector<int32_t> h_At, const std::vector<std::vector<int32_t>> &AT)
+void Encaps(uint32_t n, uint32_t q, std::vector<int32_t> &t, std::vector<int32_t> &c, const std::vector<std::vector<int32_t>> &A, const std::vector<std::vector<int32_t>> &AT, std::vector<int32_t> &Hash_K)
 {
-    // in un contesto reale r, e1, e2 dovrebbero essere creati dentro Encrypt. Unici per ogni bit. In questo caso ho semplificato e creo i noise una sola volta (ciò va ad indebolire la sicurezza)
-    // Inoltre i noise dovrebbero essere creati in maniera deterministica così da poterli ricostruire in Decaps
-    std::vector<int32_t> r = GenerateGaussianVector(n);  // calcolo noise r (vettore)
-    std::vector<int32_t> e1 = GenerateGaussianVector(n); // calcolo noise e1 (vettore)
+    std::vector<int32_t> At = concat(flatten_matrix(A), t);
+    std::vector<int32_t> pkh = SHA256(At);
 
-    int32_t e2 = getRandomInt((-1) * 3, 3); // errore e2 (intero)
+    // Genero il plaintext lungo 256 random
+    std::vector<int32_t> m(256, 0);
+    std::mt19937 rng(std::random_device{}());
+    std::uniform_int_distribution<int> bit(0, 1);
+    for (uint32_t i = 0; i < 256; ++i)
+        m[i] = bit(rng);
 
-    std::vector<int32_t> K_cap = SHA256(concat(h_At, plaintext));
+    // Creo il seed che userò nella XOF
+    std::vector<int32_t> pkh_m = concat(pkh, m);
+    std::vector<int32_t> seed = SHA256(pkh_m);
+
+
+    // TODO: implementa XOF e prendi i seed per i noise
+    // TODO: genera r, e1, e2 per ogni bit del plaintext (nel for)
+    std::vector<int32_t> r = GenerateGaussianVector(n);
+    std::vector<int32_t> e1 = GenerateGaussianVector(n);
+
+    int32_t e2 = getRandomInt((-1) * 3, 3);
+
+    std::vector<int32_t> K_cap = SHA256(concat(pkh, m));
 
     c.assign((size_t)n * (n + 1), 0);
 
@@ -283,69 +261,49 @@ void Encaps(uint32_t n, uint32_t q, std::vector<int32_t> &t, const std::vector<i
     for (uint32_t j = 0; j < n; ++j)
     {
 
-        int32_t plaintext_j = (plaintext[j] == 1) ? (int32_t)(q / 2) : 0; // considero il bit j-esimo del messaggio
+        int32_t plaintext_j = (m[j] == 1) ? (int32_t)(q / 2) : 0;
 
-        Encrypt(n, q, t, u, v_i, plaintext_j, r, e1, e2, AT); // cifro per ogni bit
+        Encrypt(n, q, t, u, v_i, plaintext_j, r, e1, e2, AT);
         size_t off = (size_t)(j) * (n + 1);
 
         for (uint32_t i = 0; i < n; ++i)
         {
-            c[off + i] = u[i]; // riempio il ciphertext con il vettore u
+            c[off + i] = u[i];
         }
 
-        c[off + n] = v_i; // riempio il ciphertext con v
+        c[off + n] = v_i;
     }
 
     std::vector<int32_t> h_c = SHA256(c);
-    Hash_K = SHA256(concat(K_cap, h_c)); // chiave condivisa
+    Hash_K = SHA256(concat(K_cap, h_c));
 }
 
-/*
-void Decrypt(int32_t &v_i, std::vector<int32_t> u, std::vector<int32_t> s, uint32_t q, int32_t &decrypt_i)
-{
-    int32_t risultato = 0;
-    for (size_t i = 0; i < s.size(); ++i)
-    {
-        risultato = mod(risultato + (s[i] * u[i]), q);
-    }
-    int32_t mu = mod(v_i - risultato, q);
-
-    uint32_t m;
-
-    int32_t bound = q / 4;
-
-    if (mu > (q - bound) || mu <= bound)
-    {
-        m = 0;
-    }
-    else
-    {
-        m = q / 2;
-    }
-
-    decrypt_i = m;
-}
-*/
-
-// Restituisce la decifratura del singolo bit del messaggio
-void Decrypt(int32_t v_i, const std::vector<int32_t> &u, const std::vector<int32_t> &s, uint32_t q, int32_t &decrypt_i)
+void Decrypt(int32_t v_i, const std::vector<int32_t> &u, const std::vector<int32_t> &s_k, uint32_t q, int32_t &decrypt_i)
 {
     long long dot = 0;
+
+    // Considero solo la prima parte di s_k, quella relativa ad s
+    const size_t n = u.size(); // la dimensione si s (senza z) è n = dimensione di u
+    std::vector<int32_t> s(s_k.begin(), s_k.begin() + n); // definisco s uguale al primo elemento di s_k fino all'elemento n-esimo di s_k
+
     for (size_t i = 0; i < s.size(); ++i)
         dot += (long long)s[i] * (long long)u[i];
 
-    long long r = ((long long)v_i - dot) % (long long)q; // mu = v - s^T*u
+    long long r = ((long long)v_i - dot) % (long long)q;
     if (r < 0)
         r += (long long)q;
     int32_t mu = (int32_t)r;
 
     const int32_t bound = (int32_t)q / 4;
-    decrypt_i = (mu <= bound || mu >= (int32_t)q - bound) ? 0 : (int32_t)q / 2; // m = 0 se minore del bound (q/4) altrimenti m = q/2
+    decrypt_i = (mu <= bound || mu >= (int32_t)q - bound) ? 0 : (int32_t)q / 2;
 }
 
-// Restituisce la chiave condivisa Hash_K
-void Decaps(uint32_t n, uint32_t q, const std::vector<int32_t> &t, const std::vector<int32_t> &s, const std::vector<int32_t> &c, std::vector<int32_t> &Hash_K, std::vector<int32_t> h_At, const std::vector<std::vector<int32_t>> &AT)
+void Decaps(uint32_t n, uint32_t q, const std::vector<int32_t> &t, const std::vector<int32_t> &s_k, const std::vector<int32_t> &c, std::vector<int32_t> &Hash_K, const std::vector<std::vector<int32_t>> &A, const std::vector<std::vector<int32_t>> &AT)
 {
+    // TODO: rendilo coerente con quanto fatto in Encaps (generazione r, e1, e2)
+    std::vector<int32_t> At = concat(flatten_matrix(A), t);
+    std::vector<int32_t> pkh = SHA256(At);
+
     std::vector<int32_t> mprime(n, 0);
     std::vector<int32_t> u_j(n, 0);
     int32_t v_j = 0, dec_m = 0;
@@ -356,11 +314,11 @@ void Decaps(uint32_t n, uint32_t q, const std::vector<int32_t> &t, const std::ve
         for (uint32_t i = 0; i < n; ++i)
             u_j[i] = c[off + i];
         v_j = c[off + n];
-        Decrypt(v_j, u_j, s, q, dec_m);                  // decifro ogni bit del plaintext
-        mprime[j] = (dec_m == (int32_t)(q / 2)) ? 1 : 0; // se avevo cifrato m = 0 -> 0 altrimenti m = q/2 -> 1
+        Decrypt(v_j, u_j, s_k, q, dec_m);
+        mprime[j] = (dec_m == (int32_t)(q / 2)) ? 1 : 0;
     }
 
-    std::vector<int32_t> K_cap = SHA256(concat(h_At, mprime));
+    std::vector<int32_t> K_cap = SHA256(concat(pkh, mprime));
 
     std::vector<int32_t> cchk;
     cchk.assign((size_t)n * (n + 1), 0);
@@ -370,24 +328,25 @@ void Decaps(uint32_t n, uint32_t q, const std::vector<int32_t> &t, const std::ve
     for (uint32_t j = 0; j < n; ++j)
     {
         int32_t m_j_map = mprime[j] ? (int32_t)(q / 2) : 0;
-        std::vector<int32_t> r = GenerateGaussianVector(n); // genero nuovamente i noise in modo random. Mi aspetto che l'encryption sia diversa da quella fatta prima, quindi non venga generato lo stesso ciphertext
+        std::vector<int32_t> r = GenerateGaussianVector(n);
         std::vector<int32_t> e1 = GenerateGaussianVector(n);
         int32_t e2 = getRandomInt(-3, 3);
 
-        Encrypt(n, q, const_cast<std::vector<int32_t> &>(t), u_tmp, v_tmp, (uint32_t)m_j_map, r, e1, e2, const_cast<std::vector<std::vector<int32_t>> &>(AT));
+        Encrypt(n, q,
+                const_cast<std::vector<int32_t> &>(t),
+                u_tmp, v_tmp, (uint32_t)m_j_map, r, e1, e2, const_cast<std::vector<std::vector<int32_t>> &>(AT));
 
         size_t off = (size_t)j * (n + 1);
         for (uint32_t i = 0; i < n; ++i)
-            cchk[off + i] = u_tmp[i]; // credo il nuovo ciphertext (analogo a quanto fatto prima)
+            cchk[off + i] = u_tmp[i];
         cchk[off + n] = v_tmp;
     }
 
-    // Toy example
     bool equal = (cchk.size() == c.size());
     if (equal)
     {
         for (size_t k = 0; k < c.size(); ++k)
-            if (cchk[k] != c[k]) // mi aspetto sempre questa occorrenza
+            if (cchk[k] != c[k])
             {
                 equal = false;
                 break;
@@ -397,7 +356,7 @@ void Decaps(uint32_t n, uint32_t q, const std::vector<int32_t> &t, const std::ve
     std::vector<int32_t> h_c = SHA256(c);
     if (equal)
     {
-        Hash_K = SHA256(concat(K_cap, h_c)); // se il confronto funzionasse otterei una chiave condivisa
+        Hash_K = SHA256(concat(K_cap, h_c));
     }
     else
     {
@@ -409,55 +368,47 @@ int main()
 {
     auto startTot = std::chrono::steady_clock::now();
 
-    uint32_t n = 512; 
-    uint32_t q = 3329; // modulo
+    uint32_t n = 512;
+    uint32_t q = 3329;
 
     std::vector<std::vector<int32_t>> A;
-    std::vector<int32_t> s, t;
+    std::vector<int32_t> s_k, t;
 
     auto startK = std::chrono::steady_clock::now();
-    KeyGen(n, q, A, s, t); // genero le chiavi pubbliche e segrete
+    KeyGen(n, q, A, s_k, t);
     auto endK = std::chrono::steady_clock::now();
 
     auto elapsedK = std::chrono::duration_cast<std::chrono::microseconds>(endK - startK);
     std::cout << "KeyGen time: " << elapsedK.count() << " mus\n";
 
     std::vector<std::vector<int32_t>> AT;
-    transposeA(A, AT); // la matrice A è pubblica, ha senso calcolare la trasposta una sola volta e passare questa informazione
+    transposeA(A, AT);
 
-    std::vector<int32_t> m(n, 0);
-    std::mt19937 rng(std::random_device{}());
-    std::uniform_int_distribution<int> bit(0, 1); 
-    for (uint32_t i = 0; i < n; ++i)
-        m[i] = bit(rng); // plaintext
+    std::vector<int32_t> c;
+    std::vector<int32_t> K_enc;
 
-    std::vector<int32_t> c; // ciphertext
-    std::vector<int32_t> K_enc; // shared key creata nell'encaps
+    /* Lo sposto in Encaps
 
-    std::vector<int32_t> At = concat(flatten_matrix(A), t); 
-    std::vector<int32_t> h_At = SHA256(At);
+    std::vector<int32_t> At = concat(flatten_matrix(A), t);
+    std::vector<int32_t> pkh_At = SHA256(At);
+    */
 
+    std::vector<int32_t> K_enc; 
     auto startE = std::chrono::steady_clock::now();
-    Encaps(n, q, t, m, c, K_enc, h_At, AT); // Facciamo l'encaps
+    Encaps(n, q, t, c, A, AT, K_enc);
     auto endE = std::chrono::steady_clock::now();
     auto elapsedE = std::chrono::duration_cast<std::chrono::microseconds>(endE - startE);
     std::cout << "Encaps time: " << elapsedE.count() << " mus\n";
 
-    std::vector<int32_t> z(32);
-    for (int i = 0; i < 32; ++i)
-    {
-        z[i] = 42; // stringa z usata nell'implicit rejection; alla fine non la uso :)
-    }
-
-    std::vector<int32_t> K_dec; // shared key creata nella decaps
+    std::vector<int32_t> K_dec;
 
     auto startD = std::chrono::steady_clock::now();
-    Decaps(n, q, t, s, c, K_dec, h_At, AT); // Facciamo la decaps
+    Decaps(n, q, t, s_k, c, K_dec, A, AT);
     auto endD = std::chrono::steady_clock::now();
     auto elapsedD = std::chrono::duration_cast<std::chrono::microseconds>(endD - startD);
     std::cout << "Decaps time: " << elapsedD.count() << " mus\n";
 
-    bool sameK = (K_enc.size() == K_dec.size()); // facciamo un controllo sulle shared keys create; mi aspetto fallisca
+    bool sameK = (K_enc.size() == K_dec.size());
     if (sameK)
     {
         for (size_t i = 0; i < K_enc.size(); ++i)
