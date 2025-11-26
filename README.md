@@ -5,8 +5,7 @@ TODO:
 
 Generali:
 1) cambiare il generatore random mt19937 con uno crittografo (vedi link codice per dilithium)
-2) implementa SHA3-256 da sostituire con SHA256
-3) valuta se esistono funzioni "migliori" per fare i sample dalle distribuzioni (da questo dipende la lunghezza della stringa in output della XOF) 
+2) valuta se esistono funzioni "migliori" per fare i sample dalle distribuzioni (da questo dipende la lunghezza della stringa in output della XOF) 
 
 PKE:
 
@@ -17,10 +16,11 @@ Avevo provato a vedere delle ottimizzazioni a livello di aritmetica come suggeri
 C'era anche l'idea di fare una cifratura (encrypt) a blocchi, non bit a bit, ma avremmo comunque un ciphertext molto grande e non so se ci sarebbe una reale efficienza
 
 
-FATTO:
+DONE:
 
 Generali:
 1) implementa XOF (funzione che preso un seed genera in maniera deterministica una stringa di lunghezza variabile)
+2) implementa SHA3-256 da sostituire con SHA256
 
 PKE:
 - KeyGen: 
