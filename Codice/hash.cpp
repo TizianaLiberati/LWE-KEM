@@ -8,7 +8,10 @@
 
 /////////////////////////////////////   SHAKE256    /////////////////////////////////////
 
-/* Non ho trovato un'implementazione ufficiale di SHA3, uso la libreria Botan che le implementa entrambe (forse c'è qualcosa anche in OpenSSL)*/
+/* 
+    Non ho trovato un'implementazione ufficiale di SHA3, uso la libreria Botan che le implementa entrambe (forse c'è 
+    qualcosa anche in OpenSSL)
+*/
 
 // Funzioni ausiliarie per SHAKE256
 
@@ -41,7 +44,8 @@ std::vector<uint8_t> shake256(const std::vector<uint8_t>& input, size_t out_len_
 }
 
 // Prende in input il seed (int32_t), lo converte in byte (uint8_t) e in output restituisce la stringa dei coins da cui ricaverò i noise
-/* SHAKE256 è una XOF:
+/* 
+    SHAKE256 è una XOF:
     - stesso input -> stesso output
     - scelta lunghezza dell'output
 */

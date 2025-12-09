@@ -1,6 +1,8 @@
 #include <vector>
 #include <cstdint>
 
+// #include <botan/system_rng.h> 
+
 #include "kem.h"
 #include "utils.h"
 #include "hash.h"
@@ -18,10 +20,19 @@ void Encaps(uint32_t n, uint32_t q, std::vector<int32_t> &t, std::vector<int32_t
 
     // Genero il plaintext lungo 256 random
     std::vector<int32_t> m(msg_bits, 0);
-    std::mt19937 rng(std::random_device{}());
-    std::uniform_int_distribution<int> bit(0, 1);
+    // std::mt19937 rng(std::random_device{}());
+
+
+
+    // TODO: sostituisci mt19937 con generatore Botan o con classe <random> 
+    // Botan::System_RNG rng;
+    
+    // std::uniform_int_distribution<int> bit(0, 1);
+    // for (uint32_t i = 0; i < msg_bits; ++i)
+    //      m[i] = bit(rng);
+
     for (uint32_t i = 0; i < msg_bits; ++i)
-        m[i] = bit(rng);
+        m[i] = random_bit(); //nuova funzione definita in utils.cpp che campiona randomicamente un bit
 
     // Creo il seed che userò nella XOF
     std::vector<int32_t> pkh_m = concat(pkh, m);
@@ -30,6 +41,9 @@ void Encaps(uint32_t n, uint32_t q, std::vector<int32_t> &t, std::vector<int32_t
 
     // implementa XOF e prendi i seed per i noise
     std::vector<uint8_t> coins = xof_coins(seed, n, msg_bits);
+
+
+    // Li genero dopo 
 
     // std::vector<int32_t> r = GenerateGaussianVector(n);
     // std::vector<int32_t> e1 = GenerateGaussianVector(n);
@@ -107,7 +121,6 @@ void Decaps(uint32_t n, uint32_t q, const std::vector<int32_t> &t, const std::ve
     std::vector<int32_t> pkh_mprime = concat(pkh, mprime);
     std::vector<int32_t> seed = SHA3_256(pkh_mprime);
 
-
     // implementa XOF e prendi i seed per i noise
     std::vector<uint8_t> coins = xof_coins(seed, n, msg_bits);
     size_t pos = 0; // indice dentro coins
@@ -115,6 +128,9 @@ void Decaps(uint32_t n, uint32_t q, const std::vector<int32_t> &t, const std::ve
     for (uint32_t j = 0; j < msg_bits; ++j)
     {
         int32_t m_j_map = mprime[j] ? (int32_t)(q / 2) : 0;
+
+        // TODO: ricontrolla perchè li generi dopo
+
         // std::vector<int32_t> r = GenerateGaussianVector(n);
         // std::vector<int32_t> e1 = GenerateGaussianVector(n);
         // int32_t e2 = getRandomInt(-3, 3);
@@ -125,7 +141,8 @@ void Decaps(uint32_t n, uint32_t q, const std::vector<int32_t> &t, const std::ve
         std::vector<int32_t>& r  = noise_i.r;
         std::vector<int32_t>& e1 = noise_i.e1;
         int32_t e2 = noise_i.e2;
-        Encrypt(n, q, const_cast<std::vector<int32_t> &>(t), u_tmp, v_tmp, (uint32_t)m_j_map, r, e1, e2, const_cast<std::vector<std::vector<int32_t>> &>(AT));
+        Encrypt(n, q, const_cast<std::vector<int32_t> &>(t), u_tmp, v_tmp, (uint32_t)m_j_map, r, e1, e2, 
+                const_cast<std::vector<std::vector<int32_t>> &>(AT));
 
         size_t off = (size_t)j * (n + 1);
         for (uint32_t i = 0; i < n; ++i)

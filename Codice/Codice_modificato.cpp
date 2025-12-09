@@ -1,3 +1,7 @@
+// TODO: vedi todo cell perchè libreria <random> dovrebbe 
+// essere crittograficamente sicura quindi rispettare CSPRNG
+// vedi anche https://github.com/Duthomhas/CSPRNG repo github
+
 #include <array>
 #include <random>
 #include <limits>

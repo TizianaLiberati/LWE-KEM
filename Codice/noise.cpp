@@ -7,8 +7,8 @@
 
 // sample_e2 restituisce un vettore in [-3, 3] (binomiale centrata)
 /*
-- coins: output di SHAKE256
-- pos: posizione dei coins presi della stringa XOF
+    - coins: output di SHAKE256
+    - pos: posizione dei coins presi della stringa XOF
 */
 int32_t sample_e2(uint8_t coins)
 {
@@ -29,14 +29,15 @@ int32_t sample_e2(uint8_t coins)
 // (es. Box Muller, Ziggurat, Ratio-of-uniforms) online ci sono pareri moolto diversi quindi si può pensare di usare
 // un metodo diverso da CDF inversa
 
-/*CDF inversa:
-Il metodo si basa sul fatto che se X è una variabile casuale continua con una funzione di ripartizione strettamente 
-crescente FX e Y = FX(X), allora Y ha una distribuzione uniforme nell'intervallo [FX_min , FX_max].
+/*
+CDF inversa:
+    Il metodo si basa sul fatto che se X è una variabile casuale continua con una funzione di ripartizione strettamente 
+    crescente FX e Y = FX(X), allora Y ha una distribuzione uniforme nell'intervallo [FX_min , FX_max].
 
-Il metodo procede come segue:
+        Il metodo procede come segue:
 
-data una variabile casuale uniforme continua U in [0, 1] e una funzione di ripartizione invertibile F, 
-la variabile casuale X = F^{−1}(U) è distribuita secondo F (o, equivalentemente X ha la distribuzione F).
+        data una variabile casuale uniforme continua U in [0, 1] e una funzione di ripartizione invertibile F, 
+        la variabile casuale X = F^{−1}(U) è distribuita secondo F (o, equivalentemente X ha la distribuzione F).
 */
 
 // Normalizzazione: dai valori della SHAKE (b) resituiamo valori interi (double) da un'uniforme continua (u)
@@ -47,9 +48,9 @@ double uniform01_from_byte(uint8_t b)
 
     // il controllo serve per non avere u = 0 o u = 1 perchè la CDF tende a inf (+ o -) quando u = 1 o 0
     /*
-    const double eps = 1e-12;
-    if (u <= 0.0) u = eps; // in teoria non dovremmo avere queste casistiche
-    if (u >= 1.0) u = 1.0 - eps;
+        const double eps = 1e-12;
+        if (u <= 0.0) u = eps; // in teoria non dovremmo avere queste casistiche
+        if (u >= 1.0) u = 1.0 - eps;
     */
 
     return u;

@@ -1,6 +1,9 @@
 #include <vector>
 #include <cstdint>
 
+// #include <botan/system_rng.h>
+
+#include "rng.h"
 #include "utils.h"
 
 int mod(int a, int b)
@@ -11,8 +14,13 @@ int mod(int a, int b)
 /////////////////////////////////////   Generazione matrice A e calcolo trasposta di A   /////////////////////////////////////
 std::vector<std::vector<int32_t>> GenerateRandomMatrixInt32(size_t n, int32_t maxValue)
 {
-    std::random_device rd;
-    std::mt19937 rng(rd());
+    // std::random_device rd;
+    // std::mt19937 rng(rd());
+
+    // TODO: sostituisci mt19937 con generatore Botan o con classe <random> 
+
+    // Botan::System_RNG rng;
+    Botan_URBG rng;
     std::uniform_int_distribution<int32_t> dist(0, maxValue);
 
     std::vector<std::vector<int32_t>> matrix(n, std::vector<int32_t>(n));
@@ -30,26 +38,29 @@ std::vector<std::vector<int32_t>> GenerateRandomMatrixInt32(size_t n, int32_t ma
 
 /////////////////////////////////////   Calcolo segreto s in KeyGen /////////////////////////////////////
 
-int32_t sample_eta_centered_binomial(uint8_t eta, std::mt19937 &gen)
+int32_t sample_eta_centered_binomial(uint8_t eta/*, std::mt19937 &gen*/)
 {
+    Botan_URBG rng;
     std::uniform_int_distribution<uint8_t> dis(0, 1);
     uint8_t sum1 = 0, sum2 = 0;
     for (uint8_t i = 0; i < eta; ++i)
     {
-        sum1 += dis(gen);
-        sum2 += dis(gen);
+        sum1 += dis(rng);
+        sum2 += dis(rng);
     }
     return (int32_t)sum1 - (int32_t)sum2;
 }
 
 std::vector<int32_t> sample_vector_binomial(uint32_t n)
 {
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    // std::random_device rd;
+    // std::mt19937 gen(rd());
+
+    // Botan::System_RNG gen;
     std::vector<int32_t> result;
     result.reserve(n);
     for (uint32_t i = 0; i < n; ++i)
-        result.push_back(sample_eta_centered_binomial(3, gen));
+        result.push_back(sample_eta_centered_binomial(3/*, gen*/));
     return result;
 }
 
@@ -62,11 +73,15 @@ std::vector<int32_t> sample_vector_binomial(uint32_t n)
 // sample_discrete_gaussian e GenerateGaussianVector le uso per la generazione dell'errore e nella funzione KeyGen
 int32_t sample_discrete_gaussian(double sigma)
 {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
+    // static std::random_device rd;
+    // static std::mt19937 gen(rd());
+    
+    Botan_URBG rng;
+
+    // Botan::System_RNG gen;
     std::normal_distribution<double> norm(0.0, sigma);
 
-    double x = norm(gen);
+    double x = norm(rng);
 
     double bound = 6.0 * sigma;
     if (x > bound)
@@ -97,10 +112,23 @@ std::vector<int32_t> GenerateGaussianVector(size_t n)
 // getRandomInt la useremo solo per campionare z
 int32_t getRandomInt(int min, int max)
 {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
+    // static std::random_device rd;
+    // static std::mt19937 gen(rd());
+
+    Botan_URBG rng;
+
+    // Botan::System_RNG gen;
     std::uniform_int_distribution<> distr(min, max);
-    return distr(gen);
+    return distr(rng);
+}
+
+
+// campiona un bit random
+int random_bit()
+{
+    Botan_URBG urbg;
+    std::uniform_int_distribution<int> bit(0, 1);
+    return bit(urbg);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

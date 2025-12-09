@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <random>
 
+#include "rng.h"
+
 int mod(int a, int b);
 
 std::vector<std::vector<int32_t>> GenerateRandomMatrixInt32(size_t n, int32_t maxValue);
@@ -16,6 +18,8 @@ int32_t sample_discrete_gaussian(double sigma);
 std::vector<int32_t> GenerateGaussianVector(size_t n);
 
 int32_t getRandomInt(int min, int max);
+
+int random_bit();
 
 std::vector<int32_t> concat(const std::vector<int32_t> &a, const std::vector<int32_t> &b);
 

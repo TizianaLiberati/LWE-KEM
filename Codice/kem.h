@@ -6,6 +6,7 @@
 #include "hash.h"
 #include "noise.h"
 #include "pke.h"
+#include "rng.h"
 
 void Encaps(uint32_t n, uint32_t q, std::vector<int32_t> &t, std::vector<int32_t> &c, const std::vector<std::vector<int32_t>> &A, const std::vector<std::vector<int32_t>> &AT, std::vector<int32_t> &Hash_K);
 

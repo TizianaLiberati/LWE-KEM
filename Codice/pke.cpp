@@ -93,5 +93,3 @@ void Decrypt(int32_t v_i, const std::vector<int32_t> &u, const std::vector<int32
     const int32_t bound = (int32_t)q / 4;
     decrypt_i = (mu <= bound || mu >= (int32_t)q - bound) ? 0 : (int32_t)q / 2;
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
