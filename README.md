@@ -4,8 +4,7 @@ Master Thesis project
 TODO:
 
 Generali:
-1) cambiare il generatore random mt19937 con uno crittografo (vedi link codice per dilithium)
-2) valuta se esistono funzioni "migliori" per fare i sample dalle distribuzioni (da questo dipende la lunghezza della stringa in output della XOF) 
+1) valuta se esistono funzioni "migliori" per fare i sample dalle distribuzioni (da questo dipende la lunghezza della stringa in output della XOF) 
 
 PKE:
 
@@ -21,6 +20,7 @@ DONE:
 Generali:
 1) implementa XOF (funzione che preso un seed genera in maniera deterministica una stringa di lunghezza variabile)
 2) implementa SHA3-256 da sostituire con SHA256
+3) cambiare il generatore random mt19937 con uno CSPRNG (rispetta le guide NIST) preso dalla libreria Botan
 
 PKE:
 - KeyGen: 
