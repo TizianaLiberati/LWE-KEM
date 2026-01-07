@@ -4,6 +4,7 @@
 // #include <botan/system_rng.h>
 
 #include "rng.h"
+#include "rng_openssl.h"
 #include "utils.h"
 
 int mod(int a, int b)
@@ -20,7 +21,10 @@ std::vector<std::vector<int32_t>> GenerateRandomMatrixInt32(size_t n, int32_t ma
     // TODO: sostituisci mt19937 con generatore Botan o con classe <random> 
 
     // Botan::System_RNG rng;
-    Botan_URBG rng;
+    // Botan_URBG rng;
+
+    // OpenSSL::System_RNG rng;
+    OpenSSL_URBG rng;
     std::uniform_int_distribution<int32_t> dist(0, maxValue);
 
     std::vector<std::vector<int32_t>> matrix(n, std::vector<int32_t>(n));
@@ -40,7 +44,8 @@ std::vector<std::vector<int32_t>> GenerateRandomMatrixInt32(size_t n, int32_t ma
 
 int32_t sample_eta_centered_binomial(uint8_t eta/*, std::mt19937 &gen*/)
 {
-    Botan_URBG rng;
+    // Botan_URBG rng;
+    OpenSSL_URBG rng;
     std::uniform_int_distribution<uint8_t> dis(0, 1);
     uint8_t sum1 = 0, sum2 = 0;
     for (uint8_t i = 0; i < eta; ++i)
@@ -76,7 +81,8 @@ int32_t sample_discrete_gaussian(double sigma)
     // static std::random_device rd;
     // static std::mt19937 gen(rd());
     
-    Botan_URBG rng;
+    // Botan_URBG rng;
+    OpenSSL_URBG rng;
 
     // Botan::System_RNG gen;
     std::normal_distribution<double> norm(0.0, sigma);
@@ -115,7 +121,8 @@ int32_t getRandomInt(int min, int max)
     // static std::random_device rd;
     // static std::mt19937 gen(rd());
 
-    Botan_URBG rng;
+    // Botan_URBG rng;
+    OpenSSL_URBG rng;
 
     // Botan::System_RNG gen;
     std::uniform_int_distribution<> distr(min, max);
@@ -126,7 +133,8 @@ int32_t getRandomInt(int min, int max)
 // campiona un bit random
 int random_bit()
 {
-    Botan_URBG urbg;
+    // Botan_URBG urbg;
+    OpenSSL_URBG urbg;
     std::uniform_int_distribution<int> bit(0, 1);
     return bit(urbg);
 }

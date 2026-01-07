@@ -1,11 +1,18 @@
 #include <vector>
 #include <cstdint>
 
+
+// per stampare tempi hash con Botan
+#include <chrono>
+#include <iostream>
+
+
 // #include <botan/system_rng.h> 
 
 #include "kem.h"
 #include "utils.h"
 #include "hash.h"
+#include "hash_openssl.h"
 #include "noise.h"
 #include "pke.h"
 
@@ -16,7 +23,9 @@ void Encaps(uint32_t n, uint32_t q, std::vector<int32_t> &t, std::vector<int32_t
     const size_t msg_bits = 256;
 
     std::vector<int32_t> At = concat(flatten_matrix(A), t);
-    std::vector<int32_t> pkh = SHA3_256(At); // potrei far in modo che SHA3_256 restituisca in uint8_t (magari se passiamo in SHA3-526)
+
+    //std::vector<int32_t> pkh = SHA3_256(At); // potrei far in modo che SHA3_256 restituisca in uint8_t (magari se passiamo in SHA3-526)
+    std::vector<int32_t> pkh = SHA3_256_openssl(At); // potrei far in modo che SHA3_256 restituisca in uint8_t (magari se passiamo in SHA3-526)
 
     // Genero il plaintext lungo 256 random
     std::vector<int32_t> m(msg_bits, 0);
@@ -36,11 +45,27 @@ void Encaps(uint32_t n, uint32_t q, std::vector<int32_t> &t, std::vector<int32_t
 
     // Creo il seed che userò nella XOF
     std::vector<int32_t> pkh_m = concat(pkh, m);
-    std::vector<int32_t> seed = SHA3_256(pkh_m);
 
+    // stampa tempi:
+    // using clock_t = std::chrono::steady_clock;
+
+    // auto t0 = clock_t::now(); // tempo zero
+    // std::vector<int32_t> seed = SHA3_256(pkh_m);
+    std::vector<int32_t> seed = SHA3_256_openssl(pkh_m);
+
+    // auto t1 = clock_t::now(); // tempo dopo sha3_256
 
     // implementa XOF e prendi i seed per i noise
-    std::vector<uint8_t> coins = xof_coins(seed, n, msg_bits);
+    // std::vector<uint8_t> coins = xof_coins(seed, n, msg_bits);
+    std::vector<uint8_t> coins = xof_coins_openssl(seed, n, msg_bits);
+    // auto t2 = clock_t::now(); // tempo dopo xof_coins che usa shake
+
+    // auto dt_hash_us = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
+    // auto dt_xof_us  = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+
+    // std::cout << "[timing] SHA3_256(K_cap) = " << dt_hash_us << " us\n";
+    // std::cout << "[timing] XOF(shake coins) = " << dt_xof_us << " us\n";
+    // fine tempi
 
 
     // Li genero dopo 
@@ -50,7 +75,8 @@ void Encaps(uint32_t n, uint32_t q, std::vector<int32_t> &t, std::vector<int32_t
 
     // int32_t e2 = getRandomInt((-1) * 3, 3); 
 
-    std::vector<int32_t> K_cap = SHA3_256(concat(pkh, m));
+    // std::vector<int32_t> K_cap = SHA3_256(concat(pkh, m));
+    std::vector<int32_t> K_cap = SHA3_256_openssl(concat(pkh, m));
 
     c.assign((size_t)msg_bits * (n + 1), 0);
 
@@ -81,8 +107,10 @@ void Encaps(uint32_t n, uint32_t q, std::vector<int32_t> &t, std::vector<int32_t
         c[off + n] = v_i;
     }
 
-    std::vector<int32_t> h_c = SHA3_256(c);
-    Hash_K = SHA3_256(concat(K_cap, h_c));
+    // std::vector<int32_t> h_c = SHA3_256(c);
+    // Hash_K = SHA3_256(concat(K_cap, h_c));
+    std::vector<int32_t> h_c = SHA3_256_openssl(c);
+    Hash_K = SHA3_256_openssl(concat(K_cap, h_c));
 }
 
 /////////////////////////////////////   Decaps  /////////////////////////////////////
@@ -92,7 +120,8 @@ void Decaps(uint32_t n, uint32_t q, const std::vector<int32_t> &t, const std::ve
     const size_t msg_bits = 256;
 
     std::vector<int32_t> At = concat(flatten_matrix(A), t);
-    std::vector<int32_t> pkh = SHA3_256(At);
+    // std::vector<int32_t> pkh = SHA3_256(At);
+    std::vector<int32_t> pkh = SHA3_256_openssl(At);
 
     std::vector<int32_t> mprime(msg_bits, 0);
     std::vector<int32_t> u_j(n, 0);
@@ -110,7 +139,8 @@ void Decaps(uint32_t n, uint32_t q, const std::vector<int32_t> &t, const std::ve
         mprime[j] = (dec_m == (int32_t)(q / 2)) ? 1 : 0;
     }
 
-    std::vector<int32_t> K_cap = SHA3_256(concat(pkh, mprime));
+    // std::vector<int32_t> K_cap = SHA3_256(concat(pkh, mprime));
+    std::vector<int32_t> K_cap = SHA3_256_openssl(concat(pkh, mprime));
 
     std::vector<int32_t> cchk;
     cchk.assign((size_t)msg_bits * (n + 1), 0);
@@ -119,10 +149,12 @@ void Decaps(uint32_t n, uint32_t q, const std::vector<int32_t> &t, const std::ve
 
     // Creo il seed che userò nella XOF
     std::vector<int32_t> pkh_mprime = concat(pkh, mprime);
-    std::vector<int32_t> seed = SHA3_256(pkh_mprime);
+    // std::vector<int32_t> seed = SHA3_256(pkh_mprime);
+    std::vector<int32_t> seed = SHA3_256_openssl(pkh_mprime);
 
     // implementa XOF e prendi i seed per i noise
-    std::vector<uint8_t> coins = xof_coins(seed, n, msg_bits);
+    // std::vector<uint8_t> coins = xof_coins(seed, n, msg_bits);
+    std::vector<uint8_t> coins = xof_coins_openssl(seed, n, msg_bits);
     size_t pos = 0; // indice dentro coins
 
     for (uint32_t j = 0; j < msg_bits; ++j)
@@ -161,17 +193,20 @@ void Decaps(uint32_t n, uint32_t q, const std::vector<int32_t> &t, const std::ve
             }
     }
     
-    std::vector<int32_t> h_c = SHA3_256(c);
+    // std::vector<int32_t> h_c = SHA3_256(c);
+    std::vector<int32_t> h_c = SHA3_256_openssl(c);
     if (equal)
     {
-        Hash_K = SHA3_256(concat(K_cap, h_c));
+        // Hash_K = SHA3_256(concat(K_cap, h_c));
+        Hash_K = SHA3_256_openssl(concat(K_cap, h_c));
         // std::cout << "ha funzionato\n";
     }
     else
     {
         // implicit rejection
         std::vector<int32_t> z(s_k.begin() + n, s_k.end());
-        Hash_K = SHA3_256(concat(z, h_c));
+        // Hash_K = SHA3_256(concat(z, h_c));
+        Hash_K = SHA3_256_openssl(concat(z, h_c));
         // std::cout << "non ha funzionato\n";
     }
 }

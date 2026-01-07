@@ -4,6 +4,8 @@
 #include <random>
 
 #include "rng.h"
+#include "rng_openssl.h"
+// #include "rng_keccak.h"
 
 int mod(int a, int b);
 

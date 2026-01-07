@@ -4,6 +4,7 @@
 
 #include "utils.h"
 #include "hash.h"
+#include "hash_openssl.h"
 #include "noise.h"
 #include "pke.h"
 #include "rng.h"

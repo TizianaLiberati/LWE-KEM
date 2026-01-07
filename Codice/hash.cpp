@@ -62,10 +62,10 @@ std::vector<uint8_t> xof_coins(const std::vector<int32_t>& seed_int32, size_t n,
     // - 256 byte per r
     // - 256 byte per e1
     // - 1 byte per e2
-    size_t total_bits  = 2 * n + 1;          // 513 totali
+    size_t total_byte  = 2 * n + 1;          // 513 totali
 
     // Byte totali necessari (per ogni bit mi serve total_bits, quindi 256 * total_bits)
-    size_t out_bytes = msg_bits * total_bits;
+    size_t out_bytes = msg_bits * total_byte;
 
     // Chiamo SHAKE-256 per ottenere out_bytes byte
     return shake256(seed_bytes, out_bytes);
