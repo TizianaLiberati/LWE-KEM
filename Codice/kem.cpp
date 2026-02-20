@@ -6,6 +6,7 @@
 #include <chrono>
 #include <iostream>
 
+#include <omp.h> // openMP
 
 // #include <botan/system_rng.h> 
 
@@ -40,6 +41,7 @@ void Encaps(uint32_t n, uint32_t q, std::vector<int32_t> &t, std::vector<int32_t
     // for (uint32_t i = 0; i < msg_bits; ++i)
     //      m[i] = bit(rng);
 
+    #pragma omp parallel for //OKKKS
     for (uint32_t i = 0; i < msg_bits; ++i)
         m[i] = random_bit(); //nuova funzione definita in utils.cpp che campiona randomicamente un bit
 
@@ -85,6 +87,7 @@ void Encaps(uint32_t n, uint32_t q, std::vector<int32_t> &t, std::vector<int32_t
 
     size_t pos = 0; // indice dentro coins
 
+
     for (uint32_t j = 0; j < msg_bits; ++j)
     {
         // genera r, e1, e2 per ogni bit del plaintext (nel for)
@@ -99,6 +102,7 @@ void Encaps(uint32_t n, uint32_t q, std::vector<int32_t> &t, std::vector<int32_t
         Encrypt(n, q, t, u, v_i, plaintext_j, r, e1, e2, AT);
         size_t off = (size_t)(j) * (n + 1);
 
+        #pragma omp parallel for //OKKS
         for (uint32_t i = 0; i < n; ++i)
         {
             c[off + i] = u[i];
@@ -131,6 +135,7 @@ void Decaps(uint32_t n, uint32_t q, const std::vector<int32_t> &t, const std::ve
     {
         size_t off = (size_t)j * (n + 1);
 
+        #pragma omp parallel for //OKKS
         for (uint32_t i = 0; i < n; ++i)
             u_j[i] = c[off + i];
 
@@ -177,6 +182,7 @@ void Decaps(uint32_t n, uint32_t q, const std::vector<int32_t> &t, const std::ve
                 const_cast<std::vector<std::vector<int32_t>> &>(AT));
 
         size_t off = (size_t)j * (n + 1);
+        #pragma omp parallel for //OKKS
         for (uint32_t i = 0; i < n; ++i)
             cchk[off + i] = u_tmp[i];
         cchk[off + n] = v_tmp;

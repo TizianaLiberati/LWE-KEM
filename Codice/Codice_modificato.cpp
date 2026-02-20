@@ -1,8 +1,4 @@
-// vedi anche https://github.com/Duthomhas/CSPRNG repo github
-
 /* TODO:
-    - vedi altra libreria per hash function: https://github.com/KeccakTeam/KeccakCodePackage (Team Keccak)
-    https://github.com/KeccakTeam/KeccakCodePackage (openSSL)
     - arcora i seed
 */
 
@@ -15,28 +11,35 @@
 #include <iostream>
 #include <string>
 
+#include <cstdlib> //NEW per makefile automatizzato
+
 #include <omp.h> // openMP
 
 #include "pke.h" // funzioni del pke
 #include "utils.h" // funzioni ausiliarie
 #include "hash.h" // funzioni di hash
-#include "hash_openssl.h"
-// #include "hash_keccak.h"
+#include "hash_openssl.h" // stiamo usando questa
 #include "noise.h" // funzioni di generazione dei noise
 #include "kem.h" // funzioni del kem
 
 
 
-int main()
+int main(int argc, char** argv)
 {
-    int N = 750;
+    int N = 1000; // N key generated
     // auto startTot = std::chrono::steady_clock::now();
 
+    // uint32_t n = 512;
     uint32_t n = 512;
     uint32_t q = 3329;
 
+
+    //
+    if (argc >= 2) n = (uint32_t)std::stoul(argv[1]);
+    if (argc >= 3) N = std::stoi(argv[2]);
+    //
     /*
-    using clock_t = std::chrono::steady_clock; // è per il benchmark
+    using clock_t = std::chrono::steady_clock; // è per il benchmark tra hash function
 
     const size_t msg_bits = 256;
 
@@ -106,20 +109,26 @@ int main()
 */
 
     auto startTot = std::chrono::steady_clock::now();
-    #pragma omp parallel for
     
+    long long sum_keygen_us = 0;
+    long long sum_encaps_us = 0;
+    long long sum_decaps_us = 0;
 
+    int mismatches = 0;
+
+    // #pragma omp parallel for 
     for (int k = 0; k < N; ++k){
         
         std::vector<std::vector<int32_t>> A;
         std::vector<int32_t> s_k, t;
 
-        //auto startK = std::chrono::steady_clock::now();
+        auto startK = std::chrono::steady_clock::now();
         KeyGen(n, q, A, s_k, t);
-        // auto endK = std::chrono::steady_clock::now();
+        auto endK = std::chrono::steady_clock::now();
 
-        // auto elapsedK = std::chrono::duration_cast<std::chrono::microseconds>(endK - startK);
-        // std::cout << "KeyGen time: " << elapsedK.count() << " mus\n";
+        auto elapsedK = std::chrono::duration_cast<std::chrono::microseconds>(endK - startK);
+        sum_keygen_us += elapsedK.count();        
+        //std::cout << "KeyGen time: " << elapsedK.count() << " mus\n";
 
         std::vector<std::vector<int32_t>> AT;
         transposeA(A, AT);
@@ -127,33 +136,41 @@ int main()
         std::vector<int32_t> c;
         std::vector<int32_t> K_enc; // chiave condivisa generata da utente che cifra
     
-        //auto startE = std::chrono::steady_clock::now();
+        auto startE = std::chrono::steady_clock::now();
         Encaps(n, q, t, c, A, AT, K_enc); // K_enc ha 32 byte = 256 bit
-        // auto endE = std::chrono::steady_clock::now();
-        // auto elapsedE = std::chrono::duration_cast<std::chrono::microseconds>(endE - startE);
-        // std::cout << "Encaps time: " << elapsedE.count() << " mus\n";
+        auto endE = std::chrono::steady_clock::now();
+        auto elapsedE = std::chrono::duration_cast<std::chrono::microseconds>(endE - startE);
+        sum_encaps_us += elapsedE.count();
+        //std::cout << "Encaps time: " << elapsedE.count() << " mus\n";
 
         std::vector<int32_t> K_dec; // chiave condivisa generata da utente che decifra
 
-        //auto startD = std::chrono::steady_clock::now();
+        auto startD = std::chrono::steady_clock::now();
         Decaps(n, q, t, s_k, c, K_dec, A, AT);
-        // auto endD = std::chrono::steady_clock::now();
-        // auto elapsedD = std::chrono::duration_cast<std::chrono::microseconds>(endD - startD);
-        // std::cout << "Decaps time: " << elapsedD.count() << " mus\n";
+        auto endD = std::chrono::steady_clock::now();
+        auto elapsedD = std::chrono::duration_cast<std::chrono::microseconds>(endD - startD);
+        sum_decaps_us += elapsedD.count();
+        //std::cout << "Decaps time: " << elapsedD.count() << " mus\n";
 
+        // auto startC = std::chrono::steady_clock::now();
         bool sameK = (K_enc.size() == K_dec.size());
+        // std::cout << "Le chiavi hanno stessa dimensione " << K_dec.size() << "\n";
         if (sameK)
         {
             for (size_t i = 0; i < K_enc.size(); ++i)
             {
                 if (K_enc[i] != K_dec[i])
                 {
-                    std::cout << "Le chiavi sono diverse all'indice " << i << "\n";
+                    std::cout << "Le chiavi sono diverse all'indice" << i << "\n";
                     sameK = false;
                     break;
                 }
             }
+            if (!sameK) mismatches++;
         }
+        // auto endC = std::chrono::steady_clock::now();
+        // auto elapsedC = std::chrono::duration_cast<std::chrono::microseconds>(endC - startC);
+        // std::cout << "Proof time: " << elapsedC.count() << " mus\n";
 
         // Stampe key encaps e decaps
 
@@ -173,9 +190,23 @@ int main()
     auto endTot = std::chrono::steady_clock::now();
 
     // microsecondi = 10^(-6) secondi
-    auto elapsedTot = std::chrono::duration_cast<std::chrono::seconds>(endTot - startTot);
-    std::cout << "Tot time: " << elapsedTot.count() << " s\n";
+    auto elapsedTot_us = std::chrono::duration_cast<std::chrono::microseconds>(endTot - startTot).count();
+    double total_s = elapsedTot_us / 1e6;
 
+    double avg_keygen_us = (double)sum_keygen_us / N;
+    double avg_encaps_us = (double)sum_encaps_us / N;
+    double avg_decaps_us = (double)sum_decaps_us / N;
+    
+    int threads = omp_get_max_threads();
+    std::cout << n << ";" << threads << ";"
+              << avg_keygen_us << ";"
+              << avg_encaps_us << ";"
+              << avg_decaps_us << ";"
+              << total_s << ";"
+              << mismatches
+              << "\n";
+
+    //std::cout << "Tot time: " << elapsedTot.count() << " s\n";
     // auto endTot = std::chrono::steady_clock::now();
 
     // // microsecondi = 10^(-6) secondi

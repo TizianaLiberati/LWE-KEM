@@ -1,6 +1,7 @@
 #include <vector>
 #include <cstdint>
 
+
 #include "noise.h"
 
 /////////////////////////////////////   Generazione noise r, e1, e2 /////////////////////////////////////

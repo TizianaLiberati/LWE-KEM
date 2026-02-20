@@ -2,6 +2,7 @@
 #include <vector>
 #include <cstdint>
 
+
 // Creiamo una struttura per i noise che useremo spesso
 struct NoiseTriple
 {
