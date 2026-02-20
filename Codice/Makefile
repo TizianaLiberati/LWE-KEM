@@ -9,3 +9,23 @@ clean:
 
 lwe_kem: Codice_modificato.cpp
 	$(CXX) $(CXXFLAGS) Codice_modificato.cpp pke.cpp utils.cpp hash.cpp hash_openssl.cpp noise.cpp kem.cpp $(LDFLAGS) -o lwe_kem
+
+# NEW PART
+# --- bench params ---
+KEYS ?= 500
+OUT  ?= bench.csv
+
+N_LIST = 512 1024 2048 4096 8192
+T_LIST = $(shell seq 2 2 36)
+
+run: lwe_kem
+	OMP_DYNAMIC=FALSE OMP_PROC_BIND=true OMP_PLACES=cores OMP_NUM_THREADS=$(THREADS) ./lwe_kem
+
+bench: lwe_kem
+	@echo "n;threads;avg_keygen_us;avg_encaps_us;avg_decaps_us;total_s;mismatches" > $(OUT)
+	@for n in $(N_LIST); do \
+	  for t in $(T_LIST); do \
+	    echo "Running n=$$n threads=$$t"; \
+	    OMP_DYNAMIC=FALSE OMP_PROC_BIND=true OMP_PLACES=cores OMP_NUM_THREADS=$$t ./lwe_kem $$n $(KEYS) >> $(OUT); \
+	  done; \
+	done

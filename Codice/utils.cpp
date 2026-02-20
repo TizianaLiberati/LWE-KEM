@@ -1,6 +1,8 @@
 #include <vector>
 #include <cstdint>
 
+#include <omp.h> // openMP
+
 // #include <botan/system_rng.h>
 
 #include "rng.h"
@@ -29,6 +31,7 @@ std::vector<std::vector<int32_t>> GenerateRandomMatrixInt32(size_t n, int32_t ma
 
     std::vector<std::vector<int32_t>> matrix(n, std::vector<int32_t>(n));
 
+    #pragma omp parallel for collapse(2) private(rng) firstprivate(dist)//OKKS
     for (size_t i = 0; i < n; ++i)
     {
         for (size_t j = 0; j < n; ++j)
@@ -169,6 +172,7 @@ void transposeA(const std::vector<std::vector<int32_t>> &A, std::vector<std::vec
 {
     const size_t n = A.size();
     AT.assign(n, std::vector<int32_t>(n));
+    #pragma omp parallel for collapse(2) //OKKS
     for (size_t i = 0; i < n; ++i)
         for (size_t j = 0; j < n; ++j)
             AT[j][i] = A[i][j];
