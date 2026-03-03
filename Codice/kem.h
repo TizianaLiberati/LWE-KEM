@@ -4,11 +4,12 @@
 #include <omp.h>
 
 #include "utils.h"
-#include "hash.h"
+// #include "hash.h" QUII
 #include "hash_openssl.h"
 #include "noise.h"
 #include "pke.h"
-#include "rng.h"
+// #include "rng.h" QUII
+#include "rng_openssl.h"
 
 void Encaps(uint32_t n, uint32_t q, std::vector<int32_t> &t, std::vector<int32_t> &c, const std::vector<std::vector<int32_t>> &A, const std::vector<std::vector<int32_t>> &AT, std::vector<int32_t> &Hash_K);
 

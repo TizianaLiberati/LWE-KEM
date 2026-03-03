@@ -17,7 +17,7 @@
 
 #include "pke.h" // funzioni del pke
 #include "utils.h" // funzioni ausiliarie
-#include "hash.h" // funzioni di hash
+// #include "hash.h" // funzioni di hash QUII
 #include "hash_openssl.h" // stiamo usando questa
 #include "noise.h" // funzioni di generazione dei noise
 #include "kem.h" // funzioni del kem
@@ -26,17 +26,27 @@
 
 int main(int argc, char** argv)
 {
-    int N = 1000; // N key generated
+    //int N = 100; // N key generated
     // auto startTot = std::chrono::steady_clock::now();
 
     // uint32_t n = 512;
-    uint32_t n = 512;
+    //uint32_t n = 512;
     uint32_t q = 3329;
 
+    if (argc < 3) {
+        std::cerr << "Usage: " << argv[0] << " <N> <n>\n";
+        return 1;
+    }
+    int N = std::atoi(argv[1]);
+    int n = std::atoi(argv[2]);
+    size_t sizeN = N * sizeof(double);
+    size_t sizen = n * sizeof(double);
+    std::cout << "N = " << N << ", sizeN = " << sizeN << std::endl;
+    std::cout << "n = " << n << ", sizen = " << sizen << std::endl;
 
     //
-    if (argc >= 2) n = (uint32_t)std::stoul(argv[1]);
-    if (argc >= 3) N = std::stoi(argv[2]);
+    //if (argc >= 2) n = (uint32_t)std::stoul(argv[1]);
+    //if (argc >= 3) N = std::stoi(argv[2]);
     //
     /*
     using clock_t = std::chrono::steady_clock; // è per il benchmark tra hash function
@@ -161,7 +171,7 @@ int main(int argc, char** argv)
             {
                 if (K_enc[i] != K_dec[i])
                 {
-                    std::cout << "Le chiavi sono diverse all'indice" << i << "\n";
+                    //std::cout << "Le chiavi sono diverse all'indice" << i << "\n";
                     sameK = false;
                     break;
                 }
@@ -197,8 +207,8 @@ int main(int argc, char** argv)
     double avg_encaps_us = (double)sum_encaps_us / N;
     double avg_decaps_us = (double)sum_decaps_us / N;
     
-    int threads = omp_get_max_threads();
-    std::cout << n << ";" << threads << ";"
+    // int threads = omp_get_max_threads();
+    std::cout << n << ";"
               << avg_keygen_us << ";"
               << avg_encaps_us << ";"
               << avg_decaps_us << ";"

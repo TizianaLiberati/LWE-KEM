@@ -5,7 +5,7 @@
 
 // #include <botan/system_rng.h>
 
-#include "rng.h"
+// #include "rng.h" QUII
 #include "rng_openssl.h"
 #include "utils.h"
 

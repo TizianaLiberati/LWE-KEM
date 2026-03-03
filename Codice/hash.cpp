@@ -1,8 +1,8 @@
 #include <vector>
 #include <cstdint>
 
-#include <botan/hash.h>
-#include <botan/hex.h>
+// #include <botan/hash.h> QUII
+// #include <botan/hex.h> QUII
 
 #include "hash.h"
 
