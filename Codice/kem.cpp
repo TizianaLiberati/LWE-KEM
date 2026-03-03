@@ -12,7 +12,7 @@
 
 #include "kem.h"
 #include "utils.h"
-#include "hash.h"
+// #include "hash.h" QUIIII
 #include "hash_openssl.h"
 #include "noise.h"
 #include "pke.h"

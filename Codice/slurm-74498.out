@@ -1,0 +1,27 @@
+rm -f lwe_kem
+g++ -std=c++20 -O2 -fopenmp Codice_modificato.cpp pke.cpp utils.cpp hash_openssl.cpp noise.cpp kem.cpp -lcrypto -fopenmp -o lwe_kem
+Running n=512 threads=1
+Running n=512 threads=2
+Running n=512 threads=4
+Running n=512 threads=6
+Running n=512 threads=8
+Running n=512 threads=12
+Running n=512 threads=16
+Running n=512 threads=24
+Running n=512 threads=32
+Running n=512 threads=36
+Running n=1024 threads=1
+Running n=1024 threads=2
+Running n=1024 threads=4
+Running n=1024 threads=6
+Running n=1024 threads=8
+Running n=1024 threads=12
+Running n=1024 threads=16
+Running n=1024 threads=24
+Running n=1024 threads=32
+Running n=1024 threads=36
+Running n=2048 threads=1
+Running n=2048 threads=2
+Running n=2048 threads=4
+Running n=2048 threads=6
+Running n=2048 threads=8

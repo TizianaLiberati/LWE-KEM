@@ -5,7 +5,7 @@
 
 #include <omp.h> // openMP
 
-#include "rng.h"
+// #include "rng.h"
 #include "rng_openssl.h"
 // #include "rng_keccak.h"
 
@@ -21,6 +21,7 @@ int32_t sample_discrete_gaussian(double sigma);
 
 std::vector<int32_t> GenerateGaussianVector(size_t n);
 
+#pragma acc routine seq
 int32_t getRandomInt(int min, int max);
 
 int random_bit();
