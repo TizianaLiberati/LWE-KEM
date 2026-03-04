@@ -4,3 +4,4 @@
 lwe_kem
 *.csv
 *.log
+openacc_ver01/LWE-KEM_gpu/Codice/KeccakCodePackage/
