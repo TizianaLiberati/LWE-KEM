@@ -3,8 +3,17 @@ Master Thesis project
 
 TODO:
 
-1) Dal confronto con FrodoKEM (altro KEM basato su LWE presentato alla competizione NIST) questo risulta meno "evoluto" quindi bisognerebbe presentarlo non come un'innovazione dal punto di vista delle performance o della sicurezza ma come uno studio accademico con valutazione delle performance (? - da discutere)
-2) Analizzare passaggio su GPU (il bottleneck sono le funzioni di hash)
+Generali:
+1) valuta se esistono funzioni "migliori" per fare i sample dalle distribuzioni (da questo dipende la lunghezza della stringa in output della XOF) 
+
+PKE:
+
+KEM:
+
+ 
+Avevo provato a vedere delle ottimizzazioni a livello di aritmetica come suggeriva Matteo (RNS ad esempio) però molte sono efficienti con un modulo molto più grande o quando il numero di prodotti/addizioni è maggiore del numero di conversioni da fare (un numero va convertito in un vettore particolare ed è in generale costoso). 
+C'era anche l'idea di fare una cifratura (encrypt) a blocchi, non bit a bit, ma avremmo comunque un ciphertext molto grande e non so se ci sarebbe una reale efficienza
+
 
 DONE:
 
@@ -12,8 +21,6 @@ Generali:
 1) implementa XOF (funzione che preso un seed genera in maniera deterministica una stringa di lunghezza variabile)
 2) implementa SHA3-256 da sostituire con SHA256
 3) cambiare il generatore random mt19937 con uno CSPRNG (rispetta le guide NIST) preso dalla libreria Botan
-4) sostituite funzioni di hash con quelle presenti nella libreria OpenSSL (più veloci)
-5) aggiunta parallelizzazione con openMP (generazione di N chiavi)
 
 PKE:
 - KeyGen: 

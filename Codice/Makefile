@@ -1,7 +1,7 @@
 CXX = nvc++ 
 # CXXFLAGS = -std=c++20 -O2 -Xpreprocessor -fopenmp -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/include/botan-3 -I/opt/homebrew/opt/openssl@3/include
 # LDFLAGS = -L/opt/homebrew/opt/libomp/lib -lomp -L/opt/homebrew/lib -lbotan-3 -L/opt/homebrew/opt/openssl@3/lib -lcrypto
-CXXFLAGS = -std=c++20 -O2 -acc -gpu=cc90,managed -Minfo=accel
+CXXFLAGS = -std=c++20 -O2 -acc -gpu=cc80,managed -Minfo=accel
 LDFLAGS  = -lcrypto #-fopenmp
 
 
