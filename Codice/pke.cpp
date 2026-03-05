@@ -10,6 +10,7 @@
 
 /////////////////////////////////////   KeyGen  /////////////////////////////////////
 /**
+ * Optimization-1
  * GPU-accelerated KeyGen with safer memory management
  * 
  * Key fixes:
@@ -17,7 +18,17 @@
  * - Use copy clause for vectors that are both read and written
  * - Separate data regions for cleaner memory scoping
  * - Prevents illegal memory access errors
+ *
+ *
+ * Optimization-2
+ * Key fixes 
+ * __restrict__
+ *
  */
+
+
+
+
 void KeyGen(uint32_t n, uint32_t q, std::vector<std::vector<int32_t>> &A, std::vector<int32_t> &s_k, std::vector<int32_t> &t)
 {
     A = GenerateRandomMatrixInt32(n, q - 1);
