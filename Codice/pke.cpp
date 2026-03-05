@@ -41,10 +41,10 @@ void KeyGen(uint32_t n, uint32_t q, std::vector<std::vector<int32_t>> &A, std::v
     s_k = concat(s, z);
 
     // Extract pointers BEFORE pragmas (critical!)
-    int32_t* Aflat_ptr = Aflat.data();
-    int32_t* s_ptr = s.data();
-    int32_t* e_ptr = e.data();
-    int32_t* prod_ptr = prod.data();
+    int32_t* __restrict__ Aflat_ptr = Aflat.data();
+    int32_t* __restrict__ s_ptr = s.data();
+    int32_t* __restrict__ e_ptr = e.data();
+    int32_t* __restrict__ prod_ptr = prod.data();
 
     // ====== GPU Region 1: prod = A*s (mod q) ======
     // Separate region for matrix-vector multiply
@@ -105,10 +105,10 @@ void Encrypt(uint32_t n, uint32_t q, std::vector<int32_t> &t, std::vector<int32_
     }
 
     // Extract pointers BEFORE pragmas (critical!)
-    int32_t* ATflat_ptr = ATflat.data();
-    int32_t* r_ptr = r.data();
-    int32_t* e1_ptr = e1.data();
-    int32_t* u_ptr = u.data();
+    int32_t* __restrict__ ATflat_ptr = ATflat.data();
+    int32_t* __restrict__ r_ptr = r.data();
+    int32_t* __restrict__ e1_ptr = e1.data();
+    int32_t* __restrict__ u_ptr = u.data();
 
     // ====== GPU Region 1: u = AT*r + e1 (mod q) ======
     // copyout: u is output-only
@@ -171,8 +171,8 @@ void Decrypt(int32_t v_i, const std::vector<int32_t> &u, const std::vector<int32
     }
 
     // Extract pointers BEFORE pragmas (critical!)
-    const int32_t* u_ptr = u.data();
-    const int32_t* s_ptr = s.data();
+    const int32_t* __restrict__ u_ptr = u.data();
+    const int32_t* __restrict__ s_ptr = s.data();
 
     // ====== GPU Region: dot = u·s ======
     #pragma acc data copyin(u_ptr[0:n], s_ptr[0:n])
