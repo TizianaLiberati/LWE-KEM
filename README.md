@@ -1,6 +1,8 @@
 # LWE-KEM
 Master Thesis project
 
+OpenACC
+
 TODO:
 
 1) Dal confronto con FrodoKEM (altro KEM basato su LWE presentato alla competizione NIST) questo risulta meno "evoluto" quindi bisognerebbe presentarlo non come un'innovazione dal punto di vista delle performance o della sicurezza ma come uno studio accademico con valutazione delle performance (? - da discutere)
