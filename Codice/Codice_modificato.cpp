@@ -1,228 +1,121 @@
-/* TODO:
-    - arcora i seed
-*/
-
-#include <array>
-#include <random>
-#include <limits>
-#include <chrono>
-#include <ctime>
-#include <cmath>
+/*  Codice_modificato.cpp  –  LWE-KEM GPU benchmark driver
+ *
+ *  All heavy work runs on GPU via OpenACC:
+ *    • Matrix A generated on-the-fly (xorshift, never stored)
+ *    • Noise generated on GPU (xorshift)
+ *    • 256 encryptions / decryptions batched into 1 kernel each
+ *    • Pre-allocated buffers (no allocation in hot loop)
+ *
+ *  Only hashing (SHA3-256 of small data) remains on CPU.
+ *
+ *  Compile:  nvc++ -std=c++20 -O2 -acc -gpu=cc80,managed -Minfo=accel
+ *  Run:      ./lwe_kem <N> <n>
+ */
 #include <iostream>
-#include <string>
-
-#include <cstdlib> //NEW per makefile automatizzato
-
-#include <omp.h> // openMP
-
-#include "pke.h" // funzioni del pke
-#include "utils.h" // funzioni ausiliarie
-// #include "hash.h" // funzioni di hash QUII
-#include "hash_openssl.h" // stiamo usando questa
-#include "noise.h" // funzioni di generazione dei noise
-#include "kem.h" // funzioni del kem
-
-
+#include <vector>
+#include <cstdint>
+#include <cstdlib>
+#include <chrono>
+#include <random>
+#include "pke.h"
+#include "kem.h"
+#include "utils.h"
 
 int main(int argc, char** argv)
 {
-    //int N = 100; // N key generated
-    // auto startTot = std::chrono::steady_clock::now();
-
-    // uint32_t n = 512;
-    //uint32_t n = 512;
     uint32_t q = 3329;
+    if (argc < 3) { std::cerr << "Usage: " << argv[0] << " <N> <n>\n"; return 1; }
 
-    if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " <N> <n>\n";
-        return 1;
-    }
     int N = std::atoi(argv[1]);
-    int n = std::atoi(argv[2]);
-    size_t sizeN = N * sizeof(double);
-    size_t sizen = n * sizeof(double);
-    std::cout << "N = " << N << ", sizeN = " << sizeN << std::endl;
-    std::cout << "n = " << n << ", sizen = " << sizen << std::endl;
+    uint32_t n = (uint32_t)std::atoi(argv[2]);
+    const uint32_t MSG = 256;
 
-    //
-    //if (argc >= 2) n = (uint32_t)std::stoul(argv[1]);
-    //if (argc >= 3) N = std::stoi(argv[2]);
-    //
-    /*
-    using clock_t = std::chrono::steady_clock; // è per il benchmark tra hash function
+    std::cout << "N = " << N << ", n = " << n
+              << ", q = " << q << ", MSG = " << MSG << "\n";
 
-    const size_t msg_bits = 256;
+    /* ---- PRE-ALLOCATE all working buffers ONCE ---- */
+    std::vector<int32_t> s_buf(n);          /* secret key         */
+    std::vector<int32_t> t_buf(n);          /* public key         */
+    std::vector<int32_t> z_buf(256);        /* implicit rejection  */
+    std::vector<int32_t> m_buf(MSG);        /* plaintext bits     */
+    std::vector<int32_t> mp_buf(MSG);       /* decrypted bits     */
+    std::vector<int32_t> dec_buf(MSG);      /* raw decrypt output */
+    std::vector<int32_t> ptxt_buf(MSG);     /* encoded plaintext  */
+    std::vector<int32_t> r_buf(MSG * n);    /* noise r            */
+    std::vector<int32_t> e1_buf(MSG * n);   /* noise e1           */
+    std::vector<int32_t> e2_buf(MSG);       /* noise e2           */
+    std::vector<int32_t> c_buf(MSG*(n+1));  /* ciphertext         */
+    std::vector<int32_t> c_chk(MSG*(n+1));  /* re-encrypt check   */
 
-    // 1) input fisso come "stringa"
-    std::string s = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
+    /* raw pointers for GPU (managed memory) */
+    int32_t* sp    = s_buf.data();
+    int32_t* tp    = t_buf.data();
+    int32_t* zp    = z_buf.data();
+    int32_t* mp    = m_buf.data();
+    int32_t* mpp   = mp_buf.data();
+    int32_t* decp  = dec_buf.data();
+    int32_t* ptxtp = ptxt_buf.data();
+    int32_t* rp    = r_buf.data();
+    int32_t* e1p   = e1_buf.data();
+    int32_t* e2p   = e2_buf.data();
+    int32_t* cp    = c_buf.data();
+    int32_t* cchkp = c_chk.data();
 
-    // 2) converti la stringa in vector<int32_t> (1 int32 per carattere)
-    std::vector<int32_t> in;
-    in.reserve(s.size());
-    for (unsigned char ch : s)
-        in.push_back((int32_t)ch);
+    /* CPU RNG for key seeds */
+    std::mt19937_64 seed_rng(42);
 
-    // warm-up (non misurato)
-    for (int i = 0; i < 10; ++i) {
-        auto seed = SHA3_256(in);
-        auto coins = xof_coins(seed, n, msg_bits);
-        (void)coins;
-    }
-
-    const int R = 1000; // numero prove
-    long long sum_hash_us = 0;
-    long long sum_xof_us  = 0;
-
-    for (int i = 0; i < R; ++i) {
-        auto t0 = clock_t::now();
-        auto seed = SHA3_256(in);
-        auto t1 = clock_t::now();
-        auto coins = xof_coins(seed, n, msg_bits);
-        auto t2 = clock_t::now();
-
-        sum_hash_us += std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
-        sum_xof_us  += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
-
-        if (coins.size() == 123456789) std::cout << "x"; // anti-ottimizzazione
-    }
-
-    std::cout << "[avg] SHA3_256 = " << (sum_hash_us / (double)R) << " ns\n";
-    std::cout << "[avg] XOF(shake) = " << (sum_xof_us  / (double)R) << " us\n";
-
-    // ---------------- BENCH OPENSSL ----------------
-
-    // warm-up (non misurato)
-    for (int i = 0; i < 10; ++i) {
-        auto seed = SHA3_256_openssl(in);
-        auto coins = xof_coins_openssl(seed, n, msg_bits);
-        (void)coins;
-    }
-
-    long long sum_hash_ns_ossl = 0;
-    long long sum_xof_us_ossl  = 0;
-
-    for (int i = 0; i < R; ++i) {
-        auto t0 = clock_t::now();
-        auto seed = SHA3_256_openssl(in);
-        auto t1 = clock_t::now();
-        auto coins = xof_coins_openssl(seed, n, msg_bits);
-        auto t2 = clock_t::now();
-
-        sum_hash_ns_ossl += std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
-        sum_xof_us_ossl  += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
-
-        if (coins.size() == 123456789) std::cout << "x";
-    }
-
-    std::cout << "[OpenSSL avg] SHA3_256 = " << (sum_hash_ns_ossl / (double)R) << " ns\n";
-    std::cout << "[OpenSSL avg] XOF(shake) = " << (sum_xof_us_ossl  / (double)R) << " us\n";
-*/
-
-    auto startTot = std::chrono::steady_clock::now();
-    
-    long long sum_keygen_us = 0;
-    long long sum_encaps_us = 0;
-    long long sum_decaps_us = 0;
-
+    long long sum_keygen_us = 0, sum_encaps_us = 0, sum_decaps_us = 0;
     int mismatches = 0;
 
-    // #pragma omp parallel for 
-    for (int k = 0; k < N; ++k){
-        
-        std::vector<std::vector<int32_t>> A;
-        std::vector<int32_t> s_k, t;
+    auto startTot = std::chrono::steady_clock::now();
 
-        auto startK = std::chrono::steady_clock::now();
-        KeyGen(n, q, A, s_k, t);
-        auto endK = std::chrono::steady_clock::now();
+    for (int k = 0; k < N; ++k)
+    {
+        uint64_t key_seed = seed_rng();
 
-        auto elapsedK = std::chrono::duration_cast<std::chrono::microseconds>(endK - startK);
-        sum_keygen_us += elapsedK.count();        
-        //std::cout << "KeyGen time: " << elapsedK.count() << " mus\n";
+        /* ---- KeyGen (GPU) ---- */
+        auto t0 = std::chrono::steady_clock::now();
+        KeyGen_GPU(key_seed, n, q, sp, tp);
+        /* Generate z on CPU (tiny — 256 values) */
+        for (int i = 0; i < 256; ++i) zp[i] = getRandomInt(0, 1);
+        auto t1 = std::chrono::steady_clock::now();
+        sum_keygen_us += std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
 
-        std::vector<std::vector<int32_t>> AT;
-        transposeA(A, AT);
+        /* ---- Encaps (GPU) ---- */
+        std::vector<int32_t> K_enc;
+        auto t2 = std::chrono::steady_clock::now();
+        Encaps_GPU(key_seed, n, q, tp, cp, K_enc,
+                   mp, rp, e1p, e2p, ptxtp);
+        auto t3 = std::chrono::steady_clock::now();
+        sum_encaps_us += std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
 
-        std::vector<int32_t> c;
-        std::vector<int32_t> K_enc; // chiave condivisa generata da utente che cifra
-    
-        auto startE = std::chrono::steady_clock::now();
-        Encaps(n, q, t, c, A, AT, K_enc); // K_enc ha 32 byte = 256 bit
-        auto endE = std::chrono::steady_clock::now();
-        auto elapsedE = std::chrono::duration_cast<std::chrono::microseconds>(endE - startE);
-        sum_encaps_us += elapsedE.count();
-        //std::cout << "Encaps time: " << elapsedE.count() << " mus\n";
+        /* ---- Decaps (GPU) ---- */
+        std::vector<int32_t> K_dec;
+        auto t4 = std::chrono::steady_clock::now();
+        Decaps_GPU(key_seed, n, q, tp, sp, zp, cp, K_dec,
+                   mpp, decp, rp, e1p, e2p, ptxtp, cchkp);
+        auto t5 = std::chrono::steady_clock::now();
+        sum_decaps_us += std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4).count();
 
-        std::vector<int32_t> K_dec; // chiave condivisa generata da utente che decifra
-
-        auto startD = std::chrono::steady_clock::now();
-        Decaps(n, q, t, s_k, c, K_dec, A, AT);
-        auto endD = std::chrono::steady_clock::now();
-        auto elapsedD = std::chrono::duration_cast<std::chrono::microseconds>(endD - startD);
-        sum_decaps_us += elapsedD.count();
-        //std::cout << "Decaps time: " << elapsedD.count() << " mus\n";
-
-        // auto startC = std::chrono::steady_clock::now();
-        bool sameK = (K_enc.size() == K_dec.size());
-        // std::cout << "Le chiavi hanno stessa dimensione " << K_dec.size() << "\n";
-        if (sameK)
-        {
+        /* ---- Check shared keys ---- */
+        bool same = (K_enc.size() == K_dec.size());
+        if (same) {
             for (size_t i = 0; i < K_enc.size(); ++i)
-            {
-                if (K_enc[i] != K_dec[i])
-                {
-                    //std::cout << "Le chiavi sono diverse all'indice" << i << "\n";
-                    sameK = false;
-                    break;
-                }
-            }
-            if (!sameK) mismatches++;
+                if (K_enc[i] != K_dec[i]) { same = false; break; }
+            if (!same) ++mismatches;
         }
-        // auto endC = std::chrono::steady_clock::now();
-        // auto elapsedC = std::chrono::duration_cast<std::chrono::microseconds>(endC - startC);
-        // std::cout << "Proof time: " << elapsedC.count() << " mus\n";
-
-        // Stampe key encaps e decaps
-
-        // std::cout << "K_enc = [ ";
-        // for (auto x : K_enc)
-        //     std::cout << x << " ";
-        // std::cout << "]\n";
-
-        // std::cout << "K_dec = [ ";
-        // for (auto x : K_dec)
-        //     std::cout << x << " ";
-        // std::cout << "]\n";
-
-         
     }
 
     auto endTot = std::chrono::steady_clock::now();
+    auto us_tot = std::chrono::duration_cast<std::chrono::microseconds>(endTot - startTot).count();
+    double total_s = us_tot / 1e6;
 
-    // microsecondi = 10^(-6) secondi
-    auto elapsedTot_us = std::chrono::duration_cast<std::chrono::microseconds>(endTot - startTot).count();
-    double total_s = elapsedTot_us / 1e6;
-
-    double avg_keygen_us = (double)sum_keygen_us / N;
-    double avg_encaps_us = (double)sum_encaps_us / N;
-    double avg_decaps_us = (double)sum_decaps_us / N;
-    
-    // int threads = omp_get_max_threads();
     std::cout << n << ";"
-              << avg_keygen_us << ";"
-              << avg_encaps_us << ";"
-              << avg_decaps_us << ";"
+              << (double)sum_keygen_us / N << ";"
+              << (double)sum_encaps_us / N << ";"
+              << (double)sum_decaps_us / N << ";"
               << total_s << ";"
-              << mismatches
-              << "\n";
+              << mismatches << "\n";
 
-    //std::cout << "Tot time: " << elapsedTot.count() << " s\n";
-    // auto endTot = std::chrono::steady_clock::now();
-
-    // // microsecondi = 10^(-6) secondi
-    // auto elapsedTot = std::chrono::duration_cast<std::chrono::seconds>(endTot - startTot);
-    // std::cout << "Tot time: " << elapsedTot.count() << " s\n";
-
-    
     return 0;
 }

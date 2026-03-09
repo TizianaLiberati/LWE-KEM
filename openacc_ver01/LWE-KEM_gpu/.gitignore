@@ -1,6 +1,0 @@
-.DS_Store
-
-# build/output
-lwe_kem
-*.csv
-*.log
