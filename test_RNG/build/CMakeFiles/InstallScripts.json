@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/tliberati/test_RNG/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

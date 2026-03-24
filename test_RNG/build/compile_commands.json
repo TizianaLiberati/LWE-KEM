@@ -1,0 +1,8 @@
+[
+{
+  "directory": "/home/tliberati/test_RNG/build",
+  "command": "/usr/bin/c++  -isystem /home/tliberati/local/rngongpu/include/RNGonGPU-1.0 -isystem /home/tliberati/local/rngongpu/include/GPUNTT-1.0 -isystem /opt/share/libs/nvidia/cuda-11.7/targets/x86_64-linux/include -g -std=gnu++17 -acc -gpu=cc90 -static-nvidia -o CMakeFiles/acc_probe1.dir/acc_probe1.cpp.o -c /home/tliberati/test_RNG/acc_probe1.cpp",
+  "file": "/home/tliberati/test_RNG/acc_probe1.cpp",
+  "output": "CMakeFiles/acc_probe1.dir/acc_probe1.cpp.o"
+}
+]
