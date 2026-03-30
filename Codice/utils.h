@@ -3,17 +3,13 @@
 #include <cstdint>
 #include <random>
 
-#include <omp.h> // openMP
-
-#include "rng.h"
 #include "rng_openssl.h"
-// #include "rng_keccak.h"
 
 int mod(int a, int b);
 
 std::vector<std::vector<int32_t>> GenerateRandomMatrixInt32(size_t n, int32_t maxValue);
 
-int32_t sample_eta_centered_binomial(uint8_t eta, std::mt19937 &gen);
+int32_t sample_eta_centered_binomial(uint8_t eta);
 
 std::vector<int32_t> sample_vector_binomial(uint32_t n);
 

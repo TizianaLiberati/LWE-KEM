@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <string>
 
+#pragma acc routine seq
 inline void openssl_randomize(std::uint8_t* out, size_t len)
 {
     if (RAND_bytes(out, static_cast<int>(len)) != 1) {
