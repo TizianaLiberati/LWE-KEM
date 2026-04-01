@@ -3,6 +3,18 @@
 #include <cstdint>
 #include "utils.h"
 
+//
+void GPU_GenerateNoise_rngongpu(uint64_t noise_seed, uint32_t n, uint32_t msg_bits, int32_t* r_buf, int32_t* e1_buf, int32_t* e2_buf);
+
+void GenerateA_GPU_rngongpu(uint64_t rho_seed, uint32_t n, uint32_t q, int32_t* A_flat);
+
+void KeyGen_GPU_rngongpu_Aflat(uint64_t key_seed, uint32_t n, uint32_t q, int32_t* A_flat, int32_t* s_out, int32_t* t_out);
+
+void BatchEncrypt_GPU_Aflat(uint32_t n, uint32_t q, int32_t* A_flat, int32_t* t_ptr, int32_t* r_buf, int32_t* e1_buf, int32_t* e2_buf, int32_t* ptxt_ptr, int32_t* c_out, uint32_t msg_bits);
+
+void KeyGen_GPU_rngongpu(uint64_t key_seed, uint32_t n, uint32_t q, int32_t* s_out, int32_t* t_out);                        
+//
+
 /* ---- Original CPU functions (kept for reference) ---- */
 void KeyGen(uint32_t n, uint32_t q, std::vector<std::vector<int32_t>> &A,
             std::vector<int32_t> &s_k, std::vector<int32_t> &t);
