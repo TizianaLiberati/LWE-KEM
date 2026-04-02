@@ -15,7 +15,6 @@ build/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
-Makefile
 
 test_RNG/TestSimo/
 Codice/lwe_kem
