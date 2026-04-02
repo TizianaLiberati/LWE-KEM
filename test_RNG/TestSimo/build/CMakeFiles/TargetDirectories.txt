@@ -1,3 +1,0 @@
-/home/tliberati/test_RNG/TestSimo/build/CMakeFiles/acc_rng.dir
-/home/tliberati/test_RNG/TestSimo/build/CMakeFiles/edit_cache.dir
-/home/tliberati/test_RNG/TestSimo/build/CMakeFiles/rebuild_cache.dir
