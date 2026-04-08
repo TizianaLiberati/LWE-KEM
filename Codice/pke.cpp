@@ -31,7 +31,7 @@ static inline int32_t A_elem(uint64_t key_seed, int i, int j, int n, int q)
 }
 
 /* ================================================================== */
-/*  RNGonGPU for 
+/*  RNGonGPU for
     -GenerateNoise (r, e1, e2);
     -Generate A (A_flat);
     -KeyGen (s, e);
@@ -42,8 +42,7 @@ void GPU_GenerateNoise_rngongpu(uint64_t noise_seed, uint32_t n, uint32_t msg_bi
 {
     size_t total = (size_t)msg_bits * n;
 
-    //r_tmp; e1_tmp values generated from RNGonGPU (double)
-    std::vector<double> r_tmp(total); 
+    std::vector<double> r_tmp(total);
     std::vector<double> e1_tmp(total);
 
     double* rp_tmp  = r_tmp.data();
@@ -58,33 +57,18 @@ void GPU_GenerateNoise_rngongpu(uint64_t noise_seed, uint32_t n, uint32_t msg_bi
         }
     }
 
-    /* 
-    std::cout << "\n[RNGonGPU] first doubles for r_tmp:\n";
-    for (size_t i = 0; i < 8 && i < total; ++i) {
-        std::cout << "r_tmp[" << i << "] = " << r_tmp[i] << "\n";
-    }
-
-    std::cout << "\n[RNGonGPU] first doubles for e1_tmp:\n";
-    for (size_t i = 0; i < 8 && i < total; ++i) {
-        std::cout << "e1_tmp[" << i << "] = " << e1_tmp[i] << "\n";
-    }
-    */
-    #pragma acc parallel loop
+    /* FIX: use raw pointers with explicit copyin clauses inside acc region */
+    #pragma acc parallel loop copyin(rp_tmp[0:total], e1p_tmp[0:total]) \
+                              copyout(r_buf[0:total], e1_buf[0:total])
     for (size_t idx = 0; idx < total; ++idx) {
-        double vr = r_tmp[idx];
-        double ve = e1_tmp[idx];
+        double vr = rp_tmp[idx];
+        double ve = e1p_tmp[idx];
 
-        //taglio code gaussiana, non ci discostiamo da sigma più di + o - 6 (nel nostro caso sigma = 1)
         if (vr >  6.0) vr =  6.0;
         if (vr < -6.0) vr = -6.0;
         if (ve >  6.0) ve =  6.0;
         if (ve < -6.0) ve = -6.0;
 
-        /*
-        Nel codice usiamo int32_t (gaussiana discreta) mentre rngongpu dà in outpu double (gaussiana continua) 
-        */
-        //r_buf; e1_buf final buffer used in the program (int32_t format)
-        //arrotondiamo all'intero più vicino
         r_buf[idx]  = (int32_t)(vr >= 0.0 ? vr + 0.5 : vr - 0.5);
         e1_buf[idx] = (int32_t)(ve >= 0.0 ? ve + 0.5 : ve - 0.5);
     }
@@ -100,37 +84,16 @@ void GPU_GenerateNoise_rngongpu(uint64_t noise_seed, uint32_t n, uint32_t msg_bi
         }
     }
 
-    #pragma acc parallel loop
+    /* FIX: use raw pointer with explicit copyin clause */
+    #pragma acc parallel loop copyin(e2p_tmp[0:msg_bits]) copyout(e2_buf[0:msg_bits])
     for (uint32_t j = 0; j < msg_bits; ++j) {
-        e2_buf[j] = (int32_t)(e2_tmp[j] % 7) - 3;
+        e2_buf[j] = (int32_t)(e2p_tmp[j] % 7) - 3;
     }
-    /*
-    std::cout << "\n[RNGonGPU] first raw uint32 values for e2_tmp:\n";
-    for (uint32_t j = 0; j < 8 && j < msg_bits; ++j) {
-        std::cout << "e2_tmp[" << j << "] = " << e2_tmp[j] << "\n";
-    }
-
-    std::cout << "\n[RNGonGPU] first int32 values for e2_buf:\n";
-    for (uint32_t j = 0; j < 8 && j < msg_bits; ++j) {
-        std::cout << "e2_buf[" << j << "] = " << e2_buf[j] << "\n";
-    }
-     std::cout << "\n[RNGonGPU] first int32 values for r_buf:\n";
-    for (size_t i = 0; i < 8 && i < total; ++i) {
-        std::cout << "r_buf[" << i << "] = " << r_buf[i] << "\n";
-    }
-
-    std::cout << "\n[RNGonGPU] first int32 values for e1_buf:\n";
-    for (size_t i = 0; i < 8 && i < total; ++i) {
-        std::cout << "e1_buf[" << i << "] = " << e1_buf[i] << "\n";
-    }
-
-    std::cout << "\n[RNGonGPU] first int32 values for e2_buf:\n";
-    for (size_t j = 0; j < 8 && j < msg_bits; ++j) {
-        std::cout << "e2_buf[" << j << "] = " << e2_buf[j] << "\n";
-    } */
 }
 
-//Genera A direttamente flat
+/* ================================================================== */
+/*  GenerateA_GPU_rngongpu  –  fill A_flat from RNGonGPU               */
+/* ================================================================== */
 void GenerateA_GPU_rngongpu(uint64_t rho_seed, uint32_t n, uint32_t q, int32_t* A_flat)
 {
     size_t total = (size_t)n * n;
@@ -146,12 +109,16 @@ void GenerateA_GPU_rngongpu(uint64_t rho_seed, uint32_t n, uint32_t q, int32_t* 
         }
     }
 
-    #pragma acc parallel loop
+    /* FIX: use raw pointer with explicit copyin clause */
+    #pragma acc parallel loop copyin(araw_ptr[0:total]) copyout(A_flat[0:total])
     for (size_t idx = 0; idx < total; ++idx) {
-        A_flat[idx] = (int32_t)(A_raw[idx] % q);
+        A_flat[idx] = (int32_t)(araw_ptr[idx] % q);
     }
 }
 
+/* ================================================================== */
+/*  KeyGen_GPU_rngongpu_Aflat                                          */
+/* ================================================================== */
 void KeyGen_GPU_rngongpu_Aflat(uint64_t key_seed, uint32_t n, uint32_t q,
                                int32_t* A_flat,
                                int32_t* s_out, int32_t* t_out)
@@ -167,19 +134,20 @@ void KeyGen_GPU_rngongpu_Aflat(uint64_t key_seed, uint32_t n, uint32_t q,
         }
     }
 
-    #pragma acc parallel loop
+    /* FIX: use raw pointer with explicit copyin clause */
+    #pragma acc parallel loop copyin(sraw_ptr[0:6*n]) copyout(s_out[0:n])
     for (uint32_t i = 0; i < n; ++i) {
         uint32_t base = 6 * i;
 
         int32_t a =
-            (int32_t)(s_raw[base + 0] % 2) +
-            (int32_t)(s_raw[base + 1] % 2) +
-            (int32_t)(s_raw[base + 2] % 2);
+            (int32_t)(sraw_ptr[base + 0] % 2) +
+            (int32_t)(sraw_ptr[base + 1] % 2) +
+            (int32_t)(sraw_ptr[base + 2] % 2);
 
         int32_t b =
-            (int32_t)(s_raw[base + 3] % 2) +
-            (int32_t)(s_raw[base + 4] % 2) +
-            (int32_t)(s_raw[base + 5] % 2);
+            (int32_t)(sraw_ptr[base + 3] % 2) +
+            (int32_t)(sraw_ptr[base + 4] % 2) +
+            (int32_t)(sraw_ptr[base + 5] % 2);
 
         s_out[i] = a - b;
     }
@@ -195,38 +163,54 @@ void KeyGen_GPU_rngongpu_Aflat(uint64_t key_seed, uint32_t n, uint32_t q,
         }
     }
 
+    /* FIX: use a plain array for e_buf so it can be used in acc region */
     std::vector<int32_t> e_buf(n);
+    int32_t* ebuf_ptr = e_buf.data();
 
-    #pragma acc parallel loop
+    /* FIX: explicit copyin/copyout on raw pointers */
+    #pragma acc parallel loop copyin(ep_tmp[0:n]) copyout(ebuf_ptr[0:n])
     for (uint32_t i = 0; i < n; ++i) {
-        double ve = e_tmp[i];
+        double ve = ep_tmp[i];
 
         double bnd = 6.0 * 2.3;
         if (ve >  bnd) ve =  bnd;
         if (ve < -bnd) ve = -bnd;
 
-        e_buf[i] = (int32_t)(ve >= 0.0 ? ve + 0.5 : ve - 0.5);
+        ebuf_ptr[i] = (int32_t)(ve >= 0.0 ? ve + 0.5 : ve - 0.5);
     }
 
-    #pragma acc parallel loop gang vector firstprivate(n, q)
+    /* FIX: explicit copyin for all arrays used in acc region */
+    #pragma acc parallel loop gang vector firstprivate(n, q) \
+        copyin(A_flat[0:(size_t)n*n], s_out[0:n], ebuf_ptr[0:n]) \
+        copyout(t_out[0:n])
     for (uint32_t i = 0; i < n; ++i) {
         long long acc = 0;
         for (uint32_t j = 0; j < n; ++j)
             acc += (long long)A_flat[(size_t)i * n + j] * (long long)s_out[j];
 
-        long long v = (acc + (long long)e_buf[i]) % (long long)q;
+        long long v = (acc + (long long)ebuf_ptr[i]) % (long long)q;
         if (v < 0) v += q;
         t_out[i] = (int32_t)v;
     }
 }
 
+/* ================================================================== */
+/*  BatchEncrypt_GPU_Aflat                                             */
+/* ================================================================== */
 void BatchEncrypt_GPU_Aflat(uint32_t n, uint32_t q,
                             int32_t* A_flat, int32_t* t_ptr,
                             int32_t* r_buf, int32_t* e1_buf, int32_t* e2_buf,
                             int32_t* ptxt_ptr,
                             int32_t* c_out, uint32_t msg_bits)
 {
-    #pragma acc parallel loop gang firstprivate(n, q, msg_bits)
+    size_t total_r  = (size_t)msg_bits * n;
+    size_t total_c  = (size_t)msg_bits * (n + 1);
+    size_t total_A  = (size_t)n * n;
+
+    #pragma acc parallel loop gang firstprivate(n, q, msg_bits) \
+        copyin(A_flat[0:total_A], t_ptr[0:n], r_buf[0:total_r], \
+               e1_buf[0:total_r], e2_buf[0:msg_bits], ptxt_ptr[0:msg_bits]) \
+        copyout(c_out[0:total_c])
     for (uint32_t j = 0; j < msg_bits; ++j)
     {
         size_t r_off = (size_t)j * n;
@@ -256,11 +240,13 @@ void BatchEncrypt_GPU_Aflat(uint32_t n, uint32_t q,
     }
 }
 
-
+/* ================================================================== */
+/*  KeyGen_GPU_rngongpu                                                */
+/* ================================================================== */
 void KeyGen_GPU_rngongpu(uint64_t key_seed, uint32_t n, uint32_t q, int32_t* s_out, int32_t* t_out)
 {
     /* Phase 1: secret vector s */
-   std::vector<uint32_t> s_raw(6 * n);
+    std::vector<uint32_t> s_raw(6 * n);
     uint32_t* sraw_ptr = s_raw.data();
 
     #pragma acc data copyout(sraw_ptr[0:6*n])
@@ -271,26 +257,23 @@ void KeyGen_GPU_rngongpu(uint64_t key_seed, uint32_t n, uint32_t q, int32_t* s_o
         }
     }
 
-    #pragma acc parallel loop
+    /* FIX: use raw pointer with explicit copyin clause */
+    #pragma acc parallel loop copyin(sraw_ptr[0:6*n]) copyout(s_out[0:n])
     for (uint32_t i = 0; i < n; ++i) {
         uint32_t base = 6 * i;
 
         int32_t a =
-            (int32_t)(s_raw[base + 0] % 2) +
-            (int32_t)(s_raw[base + 1] % 2) +
-            (int32_t)(s_raw[base + 2] % 2);
+            (int32_t)(sraw_ptr[base + 0] % 2) +
+            (int32_t)(sraw_ptr[base + 1] % 2) +
+            (int32_t)(sraw_ptr[base + 2] % 2);
 
         int32_t b =
-            (int32_t)(s_raw[base + 3] % 2) +
-            (int32_t)(s_raw[base + 4] % 2) +
-            (int32_t)(s_raw[base + 5] % 2);
+            (int32_t)(sraw_ptr[base + 3] % 2) +
+            (int32_t)(sraw_ptr[base + 4] % 2) +
+            (int32_t)(sraw_ptr[base + 5] % 2);
 
         s_out[i] = a - b;
     }
-    /* std::cout << "\n[RNGonGPU KeyGen] first int32 values for s_out:\n";
-    for (uint32_t i = 0; i < 8 && i < n; ++i) {
-        std::cout << "s_out[" << i << "] = " << s_out[i] << "\n";
-    } */
 
     /* Phase 2: generate Gaussian e with RNGonGPU */
     std::vector<double> e_tmp(n);
@@ -304,45 +287,35 @@ void KeyGen_GPU_rngongpu(uint64_t key_seed, uint32_t n, uint32_t q, int32_t* s_o
         }
     }
 
+    /* FIX: plain array for e_buf, explicit data clauses */
     std::vector<int32_t> e_buf(n);
+    int32_t* ebuf_ptr = e_buf.data();
 
-    #pragma acc parallel loop
+    #pragma acc parallel loop copyin(ep_tmp[0:n]) copyout(ebuf_ptr[0:n])
     for (uint32_t i = 0; i < n; ++i) {
-        double ve = e_tmp[i];
+        double ve = ep_tmp[i];
 
         double bnd = 6.0 * 2.3;
         if (ve >  bnd) ve =  bnd;
         if (ve < -bnd) ve = -bnd;
 
-        e_buf[i] = (int32_t)(ve >= 0.0 ? ve + 0.5 : ve - 0.5);
+        ebuf_ptr[i] = (int32_t)(ve >= 0.0 ? ve + 0.5 : ve - 0.5);
     }
-
-    /* Optional debug print */
-    /* std::cout << "\n[RNGonGPU KeyGen] first doubles for e_tmp:\n";
-    for (uint32_t i = 0; i < 8 && i < n; ++i) {
-        std::cout << "e_tmp[" << i << "] = " << e_tmp[i] << "\n";
-    }
-
-    std::cout << "\n[RNGonGPU KeyGen] first int32 values for e_buf:\n";
-    for (uint32_t i = 0; i < 8 && i < n; ++i) {
-        std::cout << "e_buf[" << i << "] = " << e_buf[i] << "\n";
-    } */
 
     /* Phase 3: t = A · s + e (mod q) */
-    #pragma acc parallel loop gang vector firstprivate(key_seed, n, q)
+    /* FIX: explicit copyin for s_out and ebuf_ptr */
+    #pragma acc parallel loop gang vector firstprivate(key_seed, n, q) \
+        copyin(s_out[0:n], ebuf_ptr[0:n]) copyout(t_out[0:n])
     for (uint32_t i = 0; i < n; ++i) {
         long long acc = 0;
         for (uint32_t j = 0; j < n; ++j)
             acc += (long long)A_elem(key_seed, i, j, n, q) * (long long)s_out[j];
 
-        long long v = (acc + (long long)e_buf[i]) % (long long)q;
+        long long v = (acc + (long long)ebuf_ptr[i]) % (long long)q;
         if (v < 0) v += q;
         t_out[i] = (int32_t)v;
     }
 }
-
-/* ================================================================== */
-
 
 /* ================================================================== */
 /*  KeyGen_GPU  –  s, t generated entirely on GPU                      */
@@ -351,7 +324,7 @@ void KeyGen_GPU(uint64_t key_seed, uint32_t n, uint32_t q,
                 int32_t* s_out, int32_t* t_out)
 {
     /* Phase 1: generate secret vector s ~ CBD(eta=3) */
-    #pragma acc parallel loop firstprivate(key_seed, n)
+    #pragma acc parallel loop firstprivate(key_seed, n) copyout(s_out[0:n])
     for (uint32_t i = 0; i < n; ++i) {
         uint64_t rng = key_seed ^ (0xA0A0A0A000000000ULL + i);
         s_out[i] = device_sample_cbd(&rng, 3);
@@ -359,7 +332,8 @@ void KeyGen_GPU(uint64_t key_seed, uint32_t n, uint32_t q,
 
     /* Phase 2: t = A · s + e  (mod q)                                 */
     /*   A[i][j] regenerated on the fly — no storage needed             */
-    #pragma acc parallel loop gang vector firstprivate(key_seed, n, q)
+    #pragma acc parallel loop gang vector firstprivate(key_seed, n, q) \
+        copyin(s_out[0:n]) copyout(t_out[0:n])
     for (uint32_t i = 0; i < n; ++i) {
         long long acc = 0;
         for (uint32_t j = 0; j < n; ++j)
@@ -380,7 +354,10 @@ void KeyGen_GPU(uint64_t key_seed, uint32_t n, uint32_t q,
 void GPU_GenerateNoise(uint64_t noise_seed, uint32_t n, uint32_t msg_bits,
                        int32_t* r_buf, int32_t* e1_buf, int32_t* e2_buf)
 {
-    #pragma acc parallel loop gang collapse(2) firstprivate(noise_seed, n, msg_bits)
+    size_t total = (size_t)msg_bits * n;
+
+    #pragma acc parallel loop gang collapse(2) firstprivate(noise_seed, n, msg_bits) \
+        copyout(r_buf[0:total], e1_buf[0:total])
     for (uint32_t j = 0; j < msg_bits; ++j) {
         for (uint32_t i = 0; i < n; ++i) {
             uint64_t idx = (uint64_t)j * n + i;
@@ -393,7 +370,7 @@ void GPU_GenerateNoise(uint64_t noise_seed, uint32_t n, uint32_t msg_bits,
         }
     }
 
-    #pragma acc parallel loop firstprivate(noise_seed, msg_bits)
+    #pragma acc parallel loop firstprivate(noise_seed, msg_bits) copyout(e2_buf[0:msg_bits])
     for (uint32_t j = 0; j < msg_bits; ++j) {
         uint64_t rng_e2 = noise_seed ^ (0xE0E0E0E000000000ULL + j);
         e2_buf[j] = xorshift_uniform(&rng_e2, 6) - 3;
@@ -409,7 +386,13 @@ void BatchEncrypt_GPU(uint64_t key_seed, uint32_t n, uint32_t q,
                       int32_t* ptxt_ptr,
                       int32_t* c_out, uint32_t msg_bits)
 {
-    #pragma acc parallel loop gang firstprivate(key_seed, n, q, msg_bits)
+    size_t total_r = (size_t)msg_bits * n;
+    size_t total_c = (size_t)msg_bits * (n + 1);
+
+    #pragma acc parallel loop gang firstprivate(key_seed, n, q, msg_bits) \
+        copyin(t_ptr[0:n], r_buf[0:total_r], e1_buf[0:total_r], \
+               e2_buf[0:msg_bits], ptxt_ptr[0:msg_bits]) \
+        copyout(c_out[0:total_c])
     for (uint32_t j = 0; j < msg_bits; ++j)
     {
         size_t r_off = (size_t)j * n;
@@ -448,7 +431,10 @@ void BatchDecrypt_GPU(uint32_t n, uint32_t q,
                       int32_t* s_ptr, int32_t* c_in,
                       int32_t* decrypt_out, uint32_t msg_bits)
 {
-    #pragma acc parallel loop gang firstprivate(n, q, msg_bits)
+    size_t total_c = (size_t)msg_bits * (n + 1);
+
+    #pragma acc parallel loop gang firstprivate(n, q, msg_bits) \
+        copyin(s_ptr[0:n], c_in[0:total_c]) copyout(decrypt_out[0:msg_bits])
     for (uint32_t j = 0; j < msg_bits; ++j)
     {
         size_t c_off = (size_t)j * (n + 1);
@@ -488,7 +474,8 @@ void KeyGen(uint32_t n, uint32_t q, std::vector<std::vector<int32_t>> &A,
     int32_t* ep = e.data();
     int32_t* pp = prod.data();
 
-    #pragma acc parallel loop gang vector firstprivate(n, q)
+    #pragma acc parallel loop gang vector firstprivate(n, q) \
+        copyin(Af[0:(size_t)n*n], sp[0:n], ep[0:n]) copyout(pp[0:n])
     for (uint32_t i = 0; i < n; ++i) {
         long long acc = 0;
         for (uint32_t j = 0; j < n; ++j)
@@ -511,8 +498,10 @@ void Encrypt(uint32_t n, uint32_t q, std::vector<int32_t> &t,
     int32_t* rp  = r.data();
     int32_t* e1p = e1.data();
     int32_t* up  = u.data();
+    int32_t* tp  = t.data();
 
-    #pragma acc parallel loop gang vector firstprivate(n, q)
+    #pragma acc parallel loop gang vector firstprivate(n, q) \
+        copyin(ATf[0:(size_t)n*n], rp[0:n], e1p[0:n]) copyout(up[0:n])
     for (uint32_t i = 0; i < n; ++i) {
         long long acc = 0;
         for (uint32_t j = 0; j < n; ++j)
@@ -523,8 +512,7 @@ void Encrypt(uint32_t n, uint32_t q, std::vector<int32_t> &t,
     }
 
     long long dot = 0;
-    int32_t* tp = t.data();
-    #pragma acc parallel loop reduction(+:dot) firstprivate(n)
+    #pragma acc parallel loop reduction(+:dot) firstprivate(n) copyin(tp[0:n], rp[0:n])
     for (uint32_t i = 0; i < n; ++i)
         dot += (long long)tp[i] * (long long)rp[i];
 
@@ -544,7 +532,7 @@ void Decrypt(int32_t v_i, const std::vector<int32_t> &u,
     const int32_t* up = u.data();
     const int32_t* sp = s.data();
 
-    #pragma acc parallel loop reduction(+:dot) firstprivate(n)
+    #pragma acc parallel loop reduction(+:dot) firstprivate(n) copyin(up[0:n], sp[0:n])
     for (size_t i = 0; i < n; ++i)
         dot += (long long)sp[i] * (long long)up[i];
 

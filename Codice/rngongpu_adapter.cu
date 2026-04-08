@@ -1,10 +1,10 @@
-#include "rngongpu/rand_aes/aes_rng.cuh"
-
 #include <cuda_runtime.h>
 #include <vector>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+
+#include "../RNGonGPU/src/include/rngongpu/rand_aes/aes_rng.cuh"
 
 static void build_entropy_and_nonce(uint64_t seed, uint64_t stream_id, std::vector<unsigned char>& entropy, std::vector<unsigned char>& nonce)
 {
