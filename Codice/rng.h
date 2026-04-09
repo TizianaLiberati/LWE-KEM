@@ -1,6 +1,5 @@
 #pragma once
 
-#include <botan/auto_rng.h>   // Depends on HMAC DRBG: As defined in NIST SP800-90A
 #include <cstdint>
 #include <limits>
 

@@ -5,7 +5,7 @@
 
 #include <omp.h> // openMP
 
-#include "rng.h"
+// #include "rng.h"
 #include "rng_openssl.h"
 // #include "rng_keccak.h"
 

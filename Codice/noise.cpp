@@ -1,3 +1,6 @@
+#include <cstddef>
+#include <cmath>     // std::sqrt, std::erfc, std::llround
+#include <limits>
 #include <vector>
 #include <cstdint>
 
@@ -138,7 +141,8 @@ int32_t sample_discrete_gaussian_sigma_from_byte(uint8_t coins, double sigma)
 NoiseTriple GenerateNoisesForOneBit(const std::vector<uint8_t>& coins, size_t& pos, const size_t n)
 {
     // const size_t n = 512;
-    double sigma = 2.3; 
+    // double sigma = 2.3; 
+    double sigma = 1; 
 
     NoiseTriple nt;
 

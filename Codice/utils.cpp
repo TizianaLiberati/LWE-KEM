@@ -3,9 +3,6 @@
 
 #include <omp.h> // openMP
 
-// #include <botan/system_rng.h>
-
-#include "rng.h"
 #include "rng_openssl.h"
 #include "utils.h"
 
@@ -17,14 +14,6 @@ int mod(int a, int b)
 /////////////////////////////////////   Generazione matrice A e calcolo trasposta di A   /////////////////////////////////////
 std::vector<std::vector<int32_t>> GenerateRandomMatrixInt32(size_t n, int32_t maxValue)
 {
-    // std::random_device rd;
-    // std::mt19937 rng(rd());
-
-    // TODO: sostituisci mt19937 con generatore Botan o con classe <random> 
-
-    // Botan::System_RNG rng;
-    // Botan_URBG rng;
-
     // OpenSSL::System_RNG rng;
     OpenSSL_URBG rng;
     std::uniform_int_distribution<int32_t> dist(0, maxValue);
@@ -172,7 +161,7 @@ void transposeA(const std::vector<std::vector<int32_t>> &A, std::vector<std::vec
 {
     const size_t n = A.size();
     AT.assign(n, std::vector<int32_t>(n));
-    #pragma omp parallel for collapse(2) //OKKS
+    #pragma omp parallel for collapse(2) 
     for (size_t i = 0; i < n; ++i)
         for (size_t j = 0; j < n; ++j)
             AT[j][i] = A[i][j];
