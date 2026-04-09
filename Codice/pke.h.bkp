@@ -1,0 +1,107 @@
+#pragma once
+/*  pke.h  –  Public API for LWE PKE GPU kernels
+ *
+ *  Updated for pke_optimized.cpp (v3):
+ *    - Added DevicePool struct declaration
+ *    - Added GenerateA_GPU_async declaration
+ *    - Updated KeyGen_GPU_rngongpu_Aflat signature (added DevicePool&)
+ *    - Updated GPU_GenerateNoise_rngongpu signature (added DevicePool&)
+ *    - Added BatchEncrypt_GPU_Aflat_Fused declaration
+ */
+
+#include <cstdint>
+#include <vector>
+
+/* ══════════════════════════════════════════════════════════════════════════
+ *  DevicePool — persistent scratch-buffer pool (defined in pke_optimized.cpp)
+ *
+ *  Allocated ONCE before the benchmark loop and kept device-resident.
+ *  Pass by reference to every kernel that needs scratch space.
+ * ══════════════════════════════════════════════════════════════════════════ */
+struct DevicePool {
+    /* KeyGen scratch */
+    std::vector<uint32_t> s_raw;    /* 6·n  elements – CBD source words       */
+    std::vector<int32_t>  e_buf;    /* n    elements – rounded Gaussian noise  */
+    std::vector<double>   e_tmp;    /* n    elements – raw Gaussian doubles    */
+
+    /* Noise scratch (re-used across noise+encrypt+decrypt) */
+    std::vector<double>   r_tmp;    /* MSG·n elements – raw r doubles          */
+    std::vector<double>   e1_tmp;   /* MSG·n elements – raw e1 doubles         */
+    std::vector<uint32_t> e2_tmp;   /* MSG   elements – raw e2 uniform words   */
+
+    /* Second A buffer for double-buffered prefetch (OPT-4) */
+    std::vector<int32_t>  A_next;   /* n·n  elements                           */
+
+    uint32_t n_alloc   = 0;
+    uint32_t msg_alloc = 0;
+
+    void init(uint32_t n, uint32_t MSG);
+    void release();
+    ~DevicePool();
+};
+
+/* ══════════════════════════════════════════════════════════════════════════
+ *  A-matrix generation
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* Async version: dispatches onto the given OpenACC async queue.
+   A_flat must already be device-resident (acc enter data in caller). */
+void GenerateA_GPU_async(uint64_t rho_seed, uint32_t n, uint32_t q,
+                         int32_t* A_flat, int stream);
+
+/* Synchronous convenience wrapper (waits on STREAM_A = 1). */
+void GenerateA_GPU_rngongpu(uint64_t rho_seed, uint32_t n, uint32_t q,
+                            int32_t* A_flat);
+
+/* ══════════════════════════════════════════════════════════════════════════
+ *  Noise generation
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* OPT-1/2d: uses pool scratch; r_buf/e1_buf/e2_buf must be device-resident. */
+void GPU_GenerateNoise_rngongpu(uint64_t noise_seed, uint32_t n,
+                                uint32_t msg_bits,
+                                int32_t* r_buf, int32_t* e1_buf,
+                                int32_t* e2_buf,
+                                DevicePool& pool);
+
+/* ══════════════════════════════════════════════════════════════════════════
+ *  KeyGen
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* OPT-1/2/3: pool scratch, present() A_flat, async s/e streams.
+   A_flat, s_out, t_out must be device-resident before call. */
+void KeyGen_GPU_rngongpu_Aflat(uint64_t key_seed, uint32_t n, uint32_t q,
+                               int32_t* A_flat,
+                               int32_t* s_out, int32_t* t_out,
+                               DevicePool& pool);
+
+/* ══════════════════════════════════════════════════════════════════════════
+ *  Encrypt
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* OPT-2b fused version: rounds r_tmp/e1_tmp inline (no separate r_buf write).
+   All pointer arguments must be device-resident. */
+void BatchEncrypt_GPU_Aflat_Fused(uint32_t n, uint32_t q,
+                                  int32_t* A_flat, int32_t* t_ptr,
+                                  double*  r_tmp,  double*  e1_tmp,
+                                  int32_t* e2_buf,
+                                  int32_t* ptxt_ptr,
+                                  int32_t* c_out, uint32_t msg_bits,
+                                  DevicePool& pool);
+
+/* Original signature — kept for API compatibility (Decaps re-encryption path).
+   All pointer arguments must be device-resident. */
+void BatchEncrypt_GPU_Aflat(uint32_t n, uint32_t q,
+                            int32_t* A_flat, int32_t* t_ptr,
+                            int32_t* r_buf, int32_t* e1_buf, int32_t* e2_buf,
+                            int32_t* ptxt_ptr,
+                            int32_t* c_out, uint32_t msg_bits);
+
+/* ══════════════════════════════════════════════════════════════════════════
+ *  Decrypt
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* All pointer arguments must be device-resident. */
+void BatchDecrypt_GPU(uint32_t n, uint32_t q,
+                      int32_t* s_ptr, int32_t* c_in,
+                      int32_t* decrypt_out, uint32_t msg_bits);
