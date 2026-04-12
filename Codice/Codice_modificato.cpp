@@ -6,33 +6,39 @@
 #include <cmath>
 #include <iostream>
 #include <string>
+#include <cstdlib>
+#include <omp.h>
 
-#include <cstdlib> //NEW per makefile automatizzato
+#include "pke.h"
+#include "utils.h"
+#include "hash_openssl.h"
+#include "noise.h"
+#include "kem.h"
 
-#include <omp.h> // openMP
-
-#include "pke.h" // funzioni del pke
-#include "utils.h" // funzioni ausiliarie
-#include "hash_openssl.h" // stiamo usando questa
-#include "noise.h" // funzioni di generazione dei noise
-#include "kem.h" // funzioni del kem
-
-
-
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     uint32_t q = 3329;
 
     if (argc < 3) {
         std::cerr << "Usage: " << argv[0] << " <N> <n>\n";
+        std::cerr << "  N: number of iterations\n";
+        std::cerr << "  n: lattice dimension\n";
         return 1;
     }
+    
     int N = std::atoi(argv[1]);
     int n = std::atoi(argv[2]);
+    
     size_t sizeN = N * sizeof(double);
     size_t sizen = n * sizeof(double);
+    
+    std::cout << "LWE-KEM Optimized Implementation\n";
+    std::cout << "================================\n";
     std::cout << "N = " << N << ", sizeN = " << sizeN << std::endl;
     std::cout << "n = " << n << ", sizen = " << sizen << std::endl;
+    
+    int threads = omp_get_max_threads();
+    std::cout << "Threads = " << threads << std::endl;
+    std::cout << std::endl;
 
     auto startTot = std::chrono::steady_clock::now();
     
@@ -42,8 +48,7 @@ int main(int argc, char** argv)
 
     int mismatches = 0;
 
-    for (int k = 0; k < N; ++k){
-        
+    for (int k = 0; k < N; ++k) {
         std::vector<std::vector<int32_t>> A;
         std::vector<int32_t> s_k, t;
 
@@ -58,15 +63,15 @@ int main(int argc, char** argv)
         transposeA(A, AT);
 
         std::vector<int32_t> c;
-        std::vector<int32_t> K_enc; // chiave condivisa generata da utente che cifra
+        std::vector<int32_t> K_enc;
     
         auto startE = std::chrono::steady_clock::now();
-        Encaps(n, q, t, c, A, AT, K_enc); // K_enc ha 32 byte = 256 bit
+        Encaps(n, q, t, c, A, AT, K_enc);
         auto endE = std::chrono::steady_clock::now();
         auto elapsedE = std::chrono::duration_cast<std::chrono::microseconds>(endE - startE);
         sum_encaps_us += elapsedE.count();
 
-        std::vector<int32_t> K_dec; // chiave condivisa generata da utente che decifra
+        std::vector<int32_t> K_dec;
 
         auto startD = std::chrono::steady_clock::now();
         Decaps(n, q, t, s_k, c, K_dec, A, AT);
@@ -75,24 +80,19 @@ int main(int argc, char** argv)
         sum_decaps_us += elapsedD.count();
         
         bool sameK = (K_enc.size() == K_dec.size());
-        if (sameK)
-        {
-            for (size_t i = 0; i < K_enc.size(); ++i)
-            {
-                if (K_enc[i] != K_dec[i])
-                {
+        if (sameK) {
+            for (size_t i = 0; i < K_enc.size(); ++i) {
+                if (K_enc[i] != K_dec[i]) {
                     sameK = false;
                     break;
                 }
             }
             if (!sameK) mismatches++;
         }
-       
     }
 
     auto endTot = std::chrono::steady_clock::now();
 
-    // microsecondi = 10^(-6) secondi
     auto elapsedTot_us = std::chrono::duration_cast<std::chrono::microseconds>(endTot - startTot).count();
     double total_s = elapsedTot_us / 1e6;
 
@@ -100,13 +100,16 @@ int main(int argc, char** argv)
     double avg_encaps_us = (double)sum_encaps_us / N;
     double avg_decaps_us = (double)sum_decaps_us / N;
     
-    int threads = omp_get_max_threads();
+    std::cout << "Results (CSV format):\n";
+    std::cout << "n;threads;avg_keygen_us;avg_encaps_us;avg_decaps_us;total_s;mismatches\n";
     std::cout << n << ";" << threads << ";"
               << avg_keygen_us << ";"
               << avg_encaps_us << ";"
               << avg_decaps_us << ";"
-              << total_s 
+              << total_s << ";"
+              << mismatches
               << "\n";
     
     return 0;
 }
+
