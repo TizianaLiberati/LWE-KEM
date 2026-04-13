@@ -1,0 +1,15 @@
+Threads: 72
+Running N=10 n=256
+Sun Apr 12 19:13:55 CEST 2026
+LWE-KEM Optimized Implementation
+================================
+N = 10, sizeN = 80
+n = 256, sizen = 2048
+Threads = 72
+
+Results (CSV format):
+n;threads;avg_keygen_us;avg_encaps_us;avg_decaps_us;total_s;mismatches
+256;72;31678.8;8609.6;8390.3;0.48828;0
+Exit code: 0
+Total of .574610801 seconds elapsed
+Sun Apr 12 19:13:55 CEST 2026

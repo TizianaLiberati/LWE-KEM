@@ -12,7 +12,7 @@ clean:
 
 lwe_kem: Codice_modificato.cpp
 #	$(CXX) $(CXXFLAGS) Codice_modificato.cpp pke.cpp utils.cpp hash.cpp hash_openssl.cpp noise.cpp kem.cpp $(LDFLAGS) -o lwe_kem
-	$(CXX) $(CXXFLAGS) Codice_modificato.cpp pke.cpp utils.cpp hash_openssl.cpp noise.cpp kem.cpp $(LDFLAGS) -o lwe_kem
+	$(CXX) $(CXXFLAGS) Codice_modificato.cpp pke.cpp utils.cpp hash_openssl.cpp noise.cpp kem.cpp config_parser.cpp $(LDFLAGS) -o lwe_kem
 
 # NEW PART
 # --- bench params ---

@@ -1,0 +1,94 @@
+# =============================================================================
+# LWE-KEM Configuration File
+# Usage:  ./lwe_kem config.txt
+# Legacy: ./lwe_kem N n          (still works)
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Problem parameters
+# -----------------------------------------------------------------------------
+
+# Number of benchmark iterations (positive integer)
+iterations = 10
+
+# Lattice dimension n.
+# Correctness constraint with q=3329:
+#   noise_kind=binomial_eta1  ->  safe for n up to ~27000
+#   noise_kind=binomial_eta3  ->  safe only for n up to ~46 (NOT for large n)
+#   noise_kind=gaussian       ->  NOT safe for any n (sigma=2.3 is too large)
+n = 1024
+
+# Modulus q (must be a prime; Kyber standard = 3329)
+q = 3329
+
+# -----------------------------------------------------------------------------
+# Noise distributions
+# -----------------------------------------------------------------------------
+# Each noise term can be set independently.  Valid values:
+#   binomial_eta1   (range {-1,0,1},  sigma=0.707 — RECOMMENDED for n>400)
+#   binomial_eta3   (range {-3..3},   sigma=1.225 — safe only for n<=256)
+#   gaussian        (range ~+-14,     sigma=2.3   — UNSAFE for all n, research only)
+#
+# Shortcut: set all encaps noise terms (e, r, e1, e2) at once:
+#   noise_kind = binomial_eta1
+#
+# Or set them individually:
+#   e_kind   = binomial_eta1    # keygen error vector e
+#   r_kind   = binomial_eta1    # encaps randomness r
+#   e1_kind  = binomial_eta1    # encaps error vector e1
+#   e2_kind  = binomial_eta1    # encaps scalar e2
+#
+# Secret key distribution (always Binomial; only eta is configurable):
+#   s_eta = 3                   # eta for secret key s (Binomial(eta=3))
+
+noise_kind = binomial_eta1
+s_eta      = 3
+
+# Gaussian sigma — only used if any noise kind is set to "gaussian"
+# WARNING: gauss_sigma=2.3 with n=16384 gives 6*sigma_noise=2451 >> q/4=832
+#          which causes guaranteed decryption failures.
+gauss_sigma = 2.3
+
+# -----------------------------------------------------------------------------
+# Reproducibility
+# -----------------------------------------------------------------------------
+# Set seed to a nonzero value to get approximate reproducibility for debugging.
+# seed=0 means "use system entropy" (different result every run).
+# Note: full determinism requires a custom DRBG; this only seeds OpenSSL's PRNG.
+seed = 0
+
+# -----------------------------------------------------------------------------
+# OpenMP / threading
+# -----------------------------------------------------------------------------
+# Number of OpenMP threads.  0 = use OMP_NUM_THREADS environment variable
+# or the hardware default.
+num_threads = 0
+
+# -----------------------------------------------------------------------------
+# Output control
+# -----------------------------------------------------------------------------
+# verbose = true   : print the parameter table and noise margin before the CSV
+# verbose = false  : print only the CSV line (for scripting/piping)
+verbose = true
+
+# warn_mismatch = true  : print a WARNING to stderr if mismatches > 0
+warn_mismatch = true
+
+# suggest_fix = true  : when mismatches occur, print parameter suggestions
+suggest_fix = true
+
+# =============================================================================
+# Quick reference — safe parameter sets
+# =============================================================================
+#
+# For n=256,    q=3329:  noise_kind=binomial_eta1  OR  binomial_eta3
+# For n=1024,   q=3329:  noise_kind=binomial_eta1  (eta3 is marginally unsafe)
+# For n=16384,  q=3329:  noise_kind=binomial_eta1  REQUIRED
+# For n=16384,  q=1048576: noise_kind=binomial_eta3  (increase q instead)
+#
+# Noise margin formula:   6*sqrt(n*(se^2*sr^2 + ss^2*se1^2) + se2^2)  <  q/4
+#   where sx = sigma for distribution x.
+#   binomial_eta1: sigma = sqrt(0.5) = 0.707
+#   binomial_eta3: sigma = sqrt(1.5) = 1.225
+#   gaussian(2.3): sigma = 2.3
+# =============================================================================

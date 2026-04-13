@@ -1,0 +1,5 @@
+Threads: 72
+Running N=10 n=8192
+Sun Apr 12 21:06:46 CEST 2026
+N = 10, sizeN = 80
+n = 8192, sizen = 65536

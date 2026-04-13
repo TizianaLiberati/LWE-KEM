@@ -1,0 +1,9 @@
+Threads: 72
+Running N=10 n=32
+Sun Apr 12 21:01:33 CEST 2026
+N = 10, sizeN = 80
+n = 32, sizen = 256
+32;72;5381.3;29071.4;32729.3;0.672019
+Exit code: 0
+Total of .726557044 seconds elapsed
+Sun Apr 12 21:01:34 CEST 2026
