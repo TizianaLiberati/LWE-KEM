@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
         std::vector<int32_t> s_k, t;
 
         auto t0 = std::chrono::steady_clock::now();
-        KeyGen(n, q, A, s_k, t);
+        KeyGen(n, q, A, s_k, t, cfg);
         auto t1 = std::chrono::steady_clock::now();
         sum_keygen_us += std::chrono::duration_cast<
             std::chrono::microseconds>(t1 - t0).count();
@@ -175,7 +175,7 @@ int main(int argc, char **argv) {
         std::vector<int32_t> c, K_enc;
 
         auto t2 = std::chrono::steady_clock::now();
-        Encaps(n, q, t, c, A, AT, K_enc);
+        Encaps(n, q, t, c, A, AT, K_enc, cfg);
         auto t3 = std::chrono::steady_clock::now();
         sum_encaps_us += std::chrono::duration_cast<
             std::chrono::microseconds>(t3 - t2).count();
@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
         std::vector<int32_t> K_dec;
 
         auto t4 = std::chrono::steady_clock::now();
-        Decaps(n, q, t, s_k, c, K_dec, A, AT);
+        Decaps(n, q, t, s_k, c, K_dec, A, AT, cfg);
         auto t5 = std::chrono::steady_clock::now();
         sum_decaps_us += std::chrono::duration_cast<
             std::chrono::microseconds>(t5 - t4).count();

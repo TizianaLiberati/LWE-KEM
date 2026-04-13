@@ -3,15 +3,17 @@
 #include <cstdint>
 
 #include "utils.h"
+#include "config.h"
 
 // ============================================================================
 // CORE PKE OPERATIONS
 // ============================================================================
 
-void KeyGen(uint32_t n, uint32_t q, 
-            std::vector<std::vector<int32_t>> &A, 
-            std::vector<int32_t> &s_k, 
-            std::vector<int32_t> &t);
+void KeyGen(uint32_t n, uint32_t q,
+            std::vector<std::vector<int32_t>> &A,
+            std::vector<int32_t> &s_k,
+            std::vector<int32_t> &t,
+            const LweKemConfig& cfg);
 
 void Encrypt(uint32_t n, uint32_t q, 
              std::vector<int32_t> &t, 

@@ -9,17 +9,17 @@
 # -----------------------------------------------------------------------------
 
 # Number of benchmark iterations (positive integer)
-iterations = 10
+iterations = 100
 
 # Lattice dimension n.
 # Correctness constraint with q=3329:
 #   noise_kind=binomial_eta1  ->  safe for n up to ~27000
 #   noise_kind=binomial_eta3  ->  safe only for n up to ~46 (NOT for large n)
 #   noise_kind=gaussian       ->  NOT safe for any n (sigma=2.3 is too large)
-n = 1024
+n = 2048
 
 # Modulus q (must be a prime; Kyber standard = 3329)
-q = 3329
+q = 12289
 
 # -----------------------------------------------------------------------------
 # Noise distributions
@@ -41,8 +41,12 @@ q = 3329
 # Secret key distribution (always Binomial; only eta is configurable):
 #   s_eta = 3                   # eta for secret key s (Binomial(eta=3))
 
-noise_kind = binomial_eta1
-s_eta      = 3
+#noise_kind = binomial_eta1
+e_kind = gaussian
+r_kind = gaussian
+e1_kind = gaussian
+e2_kind = uniform_centered_3
+s_eta = 3
 
 # Gaussian sigma — only used if any noise kind is set to "gaussian"
 # WARNING: gauss_sigma=2.3 with n=16384 gives 6*sigma_noise=2451 >> q/4=832

@@ -55,6 +55,8 @@ NoiseKind parse_noise_kind(const std::string &raw, const std::string &key) {
         return NoiseKind::BINOMIAL_ETA3;
     if (v == "gaussian" || v == "gauss")
         return NoiseKind::GAUSSIAN;
+    if (v == "uniform_centered_3" || v == "uniform_pm3" || v == "u3")
+        return NoiseKind::UNIFORM_CENTERED_3;
     throw std::runtime_error("Unknown noise kind for key '" + key + "': " + raw
         + "\n  Valid values: binomial_eta1, binomial_eta3, gaussian");
 }
@@ -65,6 +67,7 @@ double noise_sigma(NoiseKind k, uint32_t eta, double gauss_sigma) {
         case NoiseKind::BINOMIAL_ETA1: return std::sqrt(0.5);
         case NoiseKind::BINOMIAL_ETA3: return std::sqrt(static_cast<double>(eta) / 2.0);
         case NoiseKind::GAUSSIAN:      return gauss_sigma;
+        case NoiseKind::UNIFORM_CENTERED_3: return 2.0;
     }
     return 0.0;
 }

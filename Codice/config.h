@@ -23,13 +23,14 @@
 // GAUSSIAN      : X ~ N(0,σ²), rounded to integer.
 //                 NOT safe for any n with q=3329 (σ=2.3 → 6σ·√n >> q/4).
 //                 Kept for research/comparison only.
-enum class NoiseKind { BINOMIAL_ETA1, BINOMIAL_ETA3, GAUSSIAN };
+enum class NoiseKind { BINOMIAL_ETA1, BINOMIAL_ETA3, GAUSSIAN, UNIFORM_CENTERED_3 };
 
 inline const char* noise_kind_str(NoiseKind k) {
     switch (k) {
         case NoiseKind::BINOMIAL_ETA1: return "BINOMIAL_ETA1";
         case NoiseKind::BINOMIAL_ETA3: return "BINOMIAL_ETA3";
         case NoiseKind::GAUSSIAN:      return "GAUSSIAN";
+        case NoiseKind::UNIFORM_CENTERED_3: return "UNIFORM_CENTERED_3";
     }
     return "UNKNOWN";
 }

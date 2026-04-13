@@ -8,14 +8,18 @@
 #include "pke.h"
 #include "utils.h"
 
+#include "config.h"
+
 // ============================================================================
 // OPTIMIZED KEY GENERATION
 // ============================================================================
 
-void KeyGen(uint32_t n, uint32_t q, 
-            std::vector<std::vector<int32_t>> &A, 
-            std::vector<int32_t> &s_k, 
-            std::vector<int32_t> &t) {
+
+void KeyGen(uint32_t n, uint32_t q,
+            std::vector<std::vector<int32_t>> &A,
+            std::vector<int32_t> &s_k,
+            std::vector<int32_t> &t,
+            const LweKemConfig& cfg){
     // Generate random matrix A
     A = GenerateRandomMatrixInt32(n, q - 1);
     

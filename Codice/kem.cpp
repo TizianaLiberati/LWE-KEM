@@ -11,6 +11,8 @@
 #include "noise.h"
 #include "pke.h"
 
+#include "config.h"
+
 // ============================================================================
 // OPTIMIZED ENCAPSULATION WITH PARALLEL NOISE GENERATION
 // ============================================================================
@@ -20,7 +22,7 @@ void Encaps(uint32_t n, uint32_t q,
             std::vector<int32_t> &c, 
             const std::vector<std::vector<int32_t>> &A, 
             const std::vector<std::vector<int32_t>> &AT, 
-            std::vector<int32_t> &Hash_K) {
+            std::vector<int32_t> &Hash_K, const LweKemConfig& cfg) {
     const size_t msg_bits = 256;
     
     // Compute pkh = SHA3_256(A || t)
@@ -62,7 +64,7 @@ void Encaps(uint32_t n, uint32_t q,
             size_t off = static_cast<size_t>(j) * (n + 1);
             
             // Generate noise for this bit
-            NoiseTriple noise_i = GenerateNoisesForOneBit(coins, pos, n);
+            NoiseTriple noise_i = GenerateNoisesForOneBit(coins, pos, n, cfg);
             
             // Map plaintext bit to ring element
             int32_t plaintext_j = (m[j] == 1) ? static_cast<int32_t>(q / 2) : 0;
@@ -95,7 +97,7 @@ void Decaps(uint32_t n, uint32_t q,
             const std::vector<int32_t> &c, 
             std::vector<int32_t> &Hash_K, 
             const std::vector<std::vector<int32_t>> &A, 
-            const std::vector<std::vector<int32_t>> &AT) {
+            const std::vector<std::vector<int32_t>> &AT, const LweKemConfig& cfg) {
     const size_t msg_bits = 256;
     
     // Compute pkh
@@ -148,7 +150,7 @@ void Decaps(uint32_t n, uint32_t q,
             
             int32_t m_j_map = mprime[j] ? static_cast<int32_t>(q / 2) : 0;
             
-            NoiseTriple noise_i = GenerateNoisesForOneBit(coins, pos, n);
+            NoiseTriple noise_i = GenerateNoisesForOneBit(coins, pos, n, cfg);
             
             Encrypt(n, q, const_cast<std::vector<int32_t> &>(t), 
                     u_tmp, v_tmp, static_cast<uint32_t>(m_j_map),

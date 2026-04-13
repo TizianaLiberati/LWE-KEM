@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <vector>
 #include <cstdint>
+#include "config.h"
 
 
 // Creiamo una struttura per i noise che useremo spesso
@@ -24,4 +25,8 @@ double sample_normal01_from_byte(uint8_t coins);
 
 int32_t sample_discrete_gaussian_sigma_from_byte(uint8_t coins, double sigma);
 
-NoiseTriple GenerateNoisesForOneBit(const std::vector<uint8_t>& coins, size_t& pos, const size_t n);
+NoiseTriple GenerateNoisesForOneBit(const std::vector<uint8_t>& coins, size_t& pos, const size_t n, const LweKemConfig& cfg);
+
+int32_t sample_from_kind(uint8_t coins, NoiseKind kind, const LweKemConfig& cfg);
+
+int32_t sample_e2_from_kind(uint8_t coins, const LweKemConfig& cfg);

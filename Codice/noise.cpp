@@ -4,7 +4,7 @@
 #include <vector>
 #include <cstdint>
 
-
+#include "config.h"
 #include "noise.h"
 
 /////////////////////////////////////   Generazione noise r, e1, e2 /////////////////////////////////////
@@ -138,11 +138,13 @@ int32_t sample_discrete_gaussian_sigma_from_byte(uint8_t coins, double sigma)
 }
 
 // Funzione che genera i noise per un bit del messaggio
-NoiseTriple GenerateNoisesForOneBit(const std::vector<uint8_t>& coins, size_t& pos, const size_t n)
+NoiseTriple GenerateNoisesForOneBit(const std::vector<uint8_t>& coins,
+                                    size_t& pos,
+                                    const size_t n,
+                                    const LweKemConfig& cfg)
 {
     // const size_t n = 512;
     // double sigma = 2.3; 
-    double sigma = 1; 
 
     NoiseTriple nt;
 
@@ -155,7 +157,7 @@ NoiseTriple GenerateNoisesForOneBit(const std::vector<uint8_t>& coins, size_t& p
     {
         uint8_t b = coins[pos];
         ++pos;
-        nt.r.push_back(sample_discrete_gaussian_sigma_from_byte(b, sigma));
+        nt.r.push_back(sample_from_kind(b, cfg.r_kind, cfg));
     }
 
     // e1: 256 campioni gaussiani
@@ -163,15 +165,46 @@ NoiseTriple GenerateNoisesForOneBit(const std::vector<uint8_t>& coins, size_t& p
     {
         uint8_t b = coins[pos];
         ++pos;
-        nt.e1.push_back(sample_discrete_gaussian_sigma_from_byte(b, sigma));
+        nt.e1.push_back(sample_from_kind(b, cfg.e1_kind, cfg));
     }
 
     // e2: 1 byte -> [-3,3]
     {
         uint8_t b = coins[pos];
         ++pos;
-        nt.e2 = sample_e2(b);
+        nt.e2 = sample_e2_from_kind(b, cfg);
     }
 
     return nt;   
+}
+
+int32_t sample_from_kind(uint8_t coins, NoiseKind kind, const LweKemConfig& cfg)
+{
+    switch (kind) {
+        case NoiseKind::BINOMIAL_ETA1:
+            return static_cast<int32_t>(coins & 1) - static_cast<int32_t>((coins >> 1) & 1);
+
+        case NoiseKind::BINOMIAL_ETA3: {
+            int32_t a = static_cast<int32_t>(coins & 1)
+                      + static_cast<int32_t>((coins >> 1) & 1)
+                      + static_cast<int32_t>((coins >> 2) & 1);
+            int32_t b = static_cast<int32_t>((coins >> 3) & 1)
+                      + static_cast<int32_t>((coins >> 4) & 1)
+                      + static_cast<int32_t>((coins >> 5) & 1);
+            return a - b;
+        }
+
+        case NoiseKind::GAUSSIAN:
+            return sample_discrete_gaussian_sigma_from_byte(coins, cfg.gauss_sigma);
+
+        case NoiseKind::UNIFORM_CENTERED_3:
+            return sample_e2(coins);
+    }
+
+    return 0;
+}
+
+int32_t sample_e2_from_kind(uint8_t coins, const LweKemConfig& cfg)
+{
+    return sample_from_kind(coins, cfg.e2_kind, cfg);
 }
