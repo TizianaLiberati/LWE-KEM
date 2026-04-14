@@ -1,21 +1,44 @@
 # ---------------- Compiler Settings ----------------
 CXX   = nvc++ -g
-CUDAC = nvcc 
+CUDAC = nvcc
 
 GPU_ARCH ?= 80
+
+# ---------------- NVTX Toggle ----------------
+# Usage:
+#   make                -> no NVTX
+#   make nvtx=1         -> enable NVTX
+#   make profile=off    -> disable NVTX explicitly
+
+ifeq ($(nvtx),1)
+    USE_NVTX = 1
+endif
+
+ifeq ($(profile),off)
+    USE_NVTX =
+endif
 
 # ---------------- Include Paths ----------------
 RNGONGPU_PREFIX = ../RNGonGPU
 RNGONGPU_INC    = $(RNGONGPU_PREFIX)/src/include
 GPUNTT_INC      = $(RNGONGPU_PREFIX)/thirdparty/GPU-NTT/src/include
+OPENSSL_INC     = /usr/include
 
-OPENSSL_INC = /usr/include
-
-CXXFLAGS = -std=c++20 -O2 -acc -gpu=cc$(GPU_ARCH) -Minfo=accel \
-           -I$(RNGONGPU_INC) -I$(GPUNTT_INC) -I$(OPENSSL_INC)
+# ---------------- Flags ----------------
+BASE_CXXFLAGS = -std=c++20 -O2 -acc -gpu=cc$(GPU_ARCH) -Minfo=accel \
+                -I$(RNGONGPU_INC) -I$(GPUNTT_INC) -I$(OPENSSL_INC)
 
 CUDAFLAGS = -O2 -arch=sm_$(GPU_ARCH) \
             -I$(RNGONGPU_INC) -I$(GPUNTT_INC) -I$(OPENSSL_INC)
+
+# NVTX flags
+ifeq ($(USE_NVTX),1)
+    CXXFLAGS = $(BASE_CXXFLAGS) -DUSE_NVTX
+    NVTX_LIB = -lnvToolsExt
+else
+    CXXFLAGS = $(BASE_CXXFLAGS)
+    NVTX_LIB =
+endif
 
 # ---------------- Library Paths ----------------
 RNGONGPU_LIB = $(RNGONGPU_PREFIX)/build/src
@@ -25,8 +48,7 @@ OPENSSL_LIB  = /usr/lib/aarch64-linux-gnu
 LDFLAGS = -acc -gpu=cc$(GPU_ARCH),managed -cuda \
           -L$(RNGONGPU_LIB) -L$(GPUNTT_LIB) -L$(OPENSSL_LIB)
 
-# Link libraries by name
-LIBS = -lrngongpu-1.0 -lntt-1.0 -lssl -lcrypto
+LIBS = -lrngongpu-1.0 -lntt-1.0 -lssl -lcrypto $(NVTX_LIB)
 
 # ---------------- Source Files ----------------
 CPP_SRCS = Codice_modificato.cpp pke.cpp utils.cpp hash_openssl.cpp noise.cpp kem.cpp

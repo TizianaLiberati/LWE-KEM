@@ -1,43 +1,88 @@
-# LWE-KEM
-Master Thesis project
-
-TODO:
-
-Generali:
-1) valuta se esistono funzioni "migliori" per fare i sample dalle distribuzioni (da questo dipende la lunghezza della stringa in output della XOF) 
-
-PKE:
-
-KEM:
-
- 
-Avevo provato a vedere delle ottimizzazioni a livello di aritmetica come suggeriva Matteo (RNS ad esempio) però molte sono efficienti con un modulo molto più grande o quando il numero di prodotti/addizioni è maggiore del numero di conversioni da fare (un numero va convertito in un vettore particolare ed è in generale costoso). 
-C'era anche l'idea di fare una cifratura (encrypt) a blocchi, non bit a bit, ma avremmo comunque un ciphertext molto grande e non so se ci sarebbe una reale efficienza
+# LWE-KEM: Learning With Errors Key Encapsulation Mechanism
+Master Thesis project: Tiziana Liberti
 
 
-DONE:
+A C++ implementation of a Lattice-based Key Encapsulation Mechanism (KEM) using the Learning With Errors (LWE) problem with Fujisaki-Okamoto (FO) transform. This project includes both a baseline implementation and a highly optimized parallelized version.
 
-Generali:
-1) implementa XOF (funzione che preso un seed genera in maniera deterministica una stringa di lunghezza variabile)
-2) implementa SHA3-256 da sostituire con SHA256
-3) cambiare il generatore random mt19937 con uno CSPRNG (rispetta le guide NIST) preso dalla libreria Botan
+## Overview
 
-PKE:
-- KeyGen: 
-1) generare una stringa casuale z lunga 256 e concatenarla con sk (serve per l'implicit rejection)
-
-- Encrypt:
-1) calcolare i noise r, e1, e2 non più da stringhe casuali ma da seeds che verranno passate da Encaps
+This implementation provides:
+- **LWE-based Public Key Encryption (PKE)** - Core lattice encryption scheme
+- **Fujisaki-Okamoto Transform** - CCA-secure KEM construction
+- **Parallelized Noise Generation** - Efficient discrete Gaussian sampling
+- **Optimized Matrix Operations** - Cache-friendly linear algebra
 
 
-KEM:
-- Encaps: 
-1) generare un plaintext random lungo 256
-2) calcolare:
-   pk_h = Hash(A || t);
-   seed = Hash( pk_h || m);
-   XOF( seed ) (questa serve per calcolare le stringhe da cui vengono generati i noise in encrypt legandoli al messaggio così che nella decaps si possa tornare allo stesso ciphertext, non so quanto deve essere lungo l'output, dipende da come decidiamo di generare i noise)
+## Project Structure
 
-- Decaps: 
-1) come per Encaps vanno rigenerati i noise
-2) implementare FO con implicit rejection
+```
+.
+├── benchmark.md
+├── bench.sh
+├── Codice
+│   ├── benchmark.sh
+│   ├── bench.sh
+│   ├── Codice_modificato.cpp
+│   ├── command.sbatch
+│   ├── hash.cpp
+│   ├── hash.h
+│   ├── hash_keccak.cpp
+│   ├── hash_keccak.h
+│   ├── hash_openssl.cpp
+│   ├── hash_openssl.h
+│   ├── implementation.note
+│   ├── KeccakCodePackage
+│   ├── kem.cpp
+│   ├── kem.h
+│   ├── Makefile
+│   ├── noise.cpp
+│   ├── noise.h
+│   ├── pke.cpp
+│   ├── pke.h
+│   ├── rng.h
+│   ├── rng_keccak.h
+│   ├── rngongpu_adapter.cu
+│   ├── rng_openssl.h
+│   ├── sha256.h
+│   ├── utils.cpp
+│   ├── utils.h
+│   └── xorshift.h
+├── Codice_modificato.cpp
+├── local
+├── README.md
+├── RNGonGPU
+│   ├── benchmark
+│   ├── build
+│   ├── cmake
+│   ├── CMakeLists.txt
+│   ├── CONTRIBUTING.md
+│   ├── example
+│   ├── LICENSE
+│   ├── README.md
+│   ├── SECURITY.md
+│   ├── src
+│   ├── test
+│   └── thirdparty
+├── sha256.h
+└── test_RNG
+    ├── acc_probe.cpp
+    ├── build
+    ├── CMakeLists.txt
+    ├── Makefile
+    ├── openacc_c_main
+    ├── openacc_c_main.cpp
+    ├── openacc_c_main.o
+    ├── saxpy_cuda.cu
+    ├── saxpy_cuda.o
+    ├── saxpy_cuda_rnd.cpp
+    └── TestSimo
+
+```
+
+## Modified Makefile (dual build: with and without NVTX)
+
+- make → no NVTX (default, fastest)
+- make nvtx=1 → NVTX enabled
+- make profile=off → explicitly disable 
+
+
