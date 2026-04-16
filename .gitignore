@@ -1,6 +1,10 @@
 .DS_Store
 
+# IDE
+.vscode
+
 # build/output
 lwe_kem
 *.csv
 *.log
+*.o
