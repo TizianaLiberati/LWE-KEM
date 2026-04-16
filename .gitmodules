@@ -1,0 +1,3 @@
+[submodule "RNGonGPU"]
+	path = RNGonGPU
+	url = https://github.com/Alisah-Ozcan/RNGonGPU
