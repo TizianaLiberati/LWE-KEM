@@ -1,14 +1,23 @@
 # ---------------- Compiler Settings ----------------
-CXX   = nvc++ -g
+CXX   = nvc++
 CUDAC = nvcc
 
-GPU_ARCH ?= 80
+# ---------------- GPU Architectures ----------------
+# Targets: V100 (70), A100 (80), H100/GH200 (90)
+# Include compute_90 PTX as a virtual arch for future-proofing
+GENCODES = -gencode arch=compute_70,code=sm_70 \
+           -gencode arch=compute_80,code=sm_80 \
+           -gencode arch=compute_90,code=sm_90 \
+           -gencode arch=compute_90,code=compute_90
 
-# ---------------- NVTX Toggle ----------------
+NVC_GPU_FLAGS = -acc -gpu=cc70,cc80,cc90,managed
+
+# ---------------- Make Options ----------------
 # Usage:
 #   make                -> no NVTX
 #   make nvtx=1         -> enable NVTX
 #   make profile=off    -> disable NVTX explicitly
+#   make info=1         -> show accelerator info
 
 ifeq ($(nvtx),1)
     USE_NVTX = 1
@@ -18,39 +27,39 @@ ifeq ($(profile),off)
     USE_NVTX =
 endif
 
+ifeq ($(info),1)
+    NVC_GPU_FLAGS += -Minfo=accel
+endif
+
+# ---------------- OpenSSL Configuration ----------------
+# Use OPENSSL_DIR if provided, or fall back to system defaults.
+ifdef OPENSSL_DIR
+    OPENSSL_INC     = -I$(OPENSSL_DIR)/include
+    OPENSSL_LDFLAGS = -L$(OPENSSL_DIR)/lib -L$(OPENSSL_DIR)/lib64
+endif
+
 # ---------------- Include Paths ----------------
 RNGONGPU_PREFIX = ../RNGonGPU
-RNGONGPU_INC    = $(RNGONGPU_PREFIX)/src/include
-GPUNTT_INC      = $(RNGONGPU_PREFIX)/thirdparty/GPU-NTT/src/include
-OPENSSL_INC     = /usr/include
-
+RNGONGPU_INC    = -I$(RNGONGPU_PREFIX)/src/include
+GPUNTT_INC      = -I$(RNGONGPU_PREFIX)/thirdparty/GPU-NTT/src/include
+BASE_INC = $(RNGONGPU_INC) $(GPUNTT_INC) $(OPENSSL_INC)
 # ---------------- Flags ----------------
-BASE_CXXFLAGS = -std=c++20 -O2 -acc -gpu=cc$(GPU_ARCH) -Minfo=accel \
-                -I$(RNGONGPU_INC) -I$(GPUNTT_INC) -I$(OPENSSL_INC)
+CXXFLAGS  = -std=c++20 -O2 $(NVC_GPU_FLAGS) $(BASE_INC)
+CUDAFLAGS = -O2 $(GENCODES) $(BASE_INC)
 
-CUDAFLAGS = -O2 -arch=sm_$(GPU_ARCH) \
-            -I$(RNGONGPU_INC) -I$(GPUNTT_INC) -I$(OPENSSL_INC)
-
-# NVTX flags
 ifeq ($(USE_NVTX),1)
-    CXXFLAGS = $(BASE_CXXFLAGS) -DUSE_NVTX
-    NVTX_LIB = -lnvToolsExt
-else
-    CXXFLAGS = $(BASE_CXXFLAGS)
-    NVTX_LIB =
+    CXXFLAGS += -DUSE_NVTX
+    NVTX_LIB  = -lnvToolsExt
 endif
 
 # ---------------- Library Paths ----------------
-RNGONGPU_LIB = $(RNGONGPU_PREFIX)/build/src
-GPUNTT_LIB   = $(RNGONGPU_PREFIX)/build/thirdparty/GPU-NTT/src
-OPENSSL_LIB  = /usr/lib/aarch64-linux-gnu
+RNGONGPU_LIB = -L$(RNGONGPU_PREFIX)/build/src
+GPUNTT_LIB   = -L$(RNGONGPU_PREFIX)/build/thirdparty/GPU-NTT/src
 
-LDFLAGS = -acc -gpu=cc$(GPU_ARCH),managed -cuda \
-          -L$(RNGONGPU_LIB) -L$(GPUNTT_LIB) -L$(OPENSSL_LIB)
+LDFLAGS = $(NVC_GPU_FLAGS) -cuda $(RNGONGPU_LIB) $(GPUNTT_LIB) $(OPENSSL_LDFLAGS)
+LIBS    = -lrngongpu-1.0 -lntt-1.0 -lssl -lcrypto $(NVTX_LIB)
 
-LIBS = -lrngongpu-1.0 -lntt-1.0 -lssl -lcrypto $(NVTX_LIB)
-
-# ---------------- Source Files ----------------
+# ---------------- Files ----------------
 CPP_SRCS = Codice_modificato.cpp pke.cpp utils.cpp hash_openssl.cpp noise.cpp kem.cpp
 CU_SRCS  = rngongpu_adapter.cu
 
@@ -58,6 +67,8 @@ CPP_OBJS = $(CPP_SRCS:.cpp=.o)
 CU_OBJS  = $(CU_SRCS:.cu=.o)
 
 # ---------------- Targets ----------------
+.PHONY: all clean
+
 all: lwe_kem
 
 clean:
