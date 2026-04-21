@@ -1,9 +1,0 @@
-Threads: 72
-Running N=10 n=4096
-Sun Apr 12 21:04:02 CEST 2026
-N = 10, sizeN = 80
-n = 4096, sizen = 32768
-4096;72;7.57023e+06;4.03594e+06;4.04623e+06;156.824
-Exit code: 0
-Total of 156.873681967 seconds elapsed
-Sun Apr 12 21:06:39 CEST 2026
