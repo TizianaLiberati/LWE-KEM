@@ -8,3 +8,11 @@ lwe_kem
 *.csv
 *.log
 *.o
+.vscode/
+*.nsys-rep
+*.sqlite
+test_RNG/build/
+test_RNG/*.o
+test_RNG/openacc_c_main
+Codice_modificato.cpp
+bench.sh
