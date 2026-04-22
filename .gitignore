@@ -5,17 +5,25 @@ lwe_kem
 *.csv
 *.log
 *.o
-*.out
 *.a
 *.so
 *.nsys-rep
 a.out
+slurm-*.out
+slurm-*.err
 
 build/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
 
-test_RNG/TestSimo/
-Codice/lwe_kem
+# local tests / generated files
+test_RNG/
+.vscode/
 
+# keep main branch minimal
+Codice/
+RNGonGPU/
+benchmark.md
+Nitin_openmp_original_v1/
+Nitin_openmp_original_v2/
