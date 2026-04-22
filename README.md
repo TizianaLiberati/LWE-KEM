@@ -1,43 +1,38 @@
-# LWE-KEM
-Master Thesis project
+# OpenMP Branch
+This branch contains only the OpenMP implementation.
+For the GPU version, see the OpenACC branch.
 
-TODO:
+## Build
+```
+cd Codice
+make clean
+make
+```
 
-Generali:
-1) valuta se esistono funzioni "migliori" per fare i sample dalle distribuzioni (da questo dipende la lunghezza della stringa in output della XOF) 
+## Run
+Direct CLI mode:
+`./lwe_kem N n`
+With:
+-	`N` =number of KEM iterations (i.e., number of key generations)
+-	`n` = lattice dimension
 
-PKE:
+Configuration mode:
+`./lwe_kem config.txt`
 
-KEM:
+The `config.txt` file allows the user to configure parameters. Main configurable parameters include:
+- `N` (number of iterations)
+- `n` (lattice dimension)
+- `q` (modulus)
+- noise distributions (`eta`, `sigma`)
+CLI mode is intended for quick runs with explicit `N` and `n` values.
+The configuration file mode allows the user to define a broader set of parameters, including cryptographic and benchmark settings.
 
- 
-Avevo provato a vedere delle ottimizzazioni a livello di aritmetica come suggeriva Matteo (RNS ad esempio) però molte sono efficienti con un modulo molto più grande o quando il numero di prodotti/addizioni è maggiore del numero di conversioni da fare (un numero va convertito in un vettore particolare ed è in generale costoso). 
-C'era anche l'idea di fare una cifratura (encrypt) a blocchi, non bit a bit, ma avremmo comunque un ciphertext molto grande e non so se ci sarebbe una reale efficienza
+## Example
+`./lwe_kem 100 4096`
 
+## Benchmark
+`./benchmark.sh`
 
-DONE:
-
-Generali:
-1) implementa XOF (funzione che preso un seed genera in maniera deterministica una stringa di lunghezza variabile)
-2) implementa SHA3-256 da sostituire con SHA256
-3) cambiare il generatore random mt19937 con uno CSPRNG (rispetta le guide NIST) preso dalla libreria Botan
-
-PKE:
-- KeyGen: 
-1) generare una stringa casuale z lunga 256 e concatenarla con sk (serve per l'implicit rejection)
-
-- Encrypt:
-1) calcolare i noise r, e1, e2 non più da stringhe casuali ma da seeds che verranno passate da Encaps
-
-
-KEM:
-- Encaps: 
-1) generare un plaintext random lungo 256
-2) calcolare:
-   pk_h = Hash(A || t);
-   seed = Hash( pk_h || m);
-   XOF( seed ) (questa serve per calcolare le stringhe da cui vengono generati i noise in encrypt legandoli al messaggio così che nella decaps si possa tornare allo stesso ciphertext, non so quanto deve essere lungo l'output, dipende da come decidiamo di generare i noise)
-
-- Decaps: 
-1) come per Encaps vanno rigenerati i noise
-2) implementare FO con implicit rejection
+## Notes
+This branch is focused on the OpenMP implementation and CPU-side benchmarking.
+For the general project overview, see the `main` branch.
