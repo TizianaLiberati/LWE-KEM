@@ -24,8 +24,8 @@ For Docker-based GPU execution, the host system must provide:
 ## Tested on
 -	GH200 (Grace Hopper)
 -	H100 (AMD EPYC CPU + NVIDIA GPU)
--	V100s 
 -	A100
+-	V100
  
 ## Build
 OpenMP version
