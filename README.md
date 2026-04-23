@@ -2,6 +2,7 @@
 This repository provides a parallel implementation of a Learning With Errors (LWE)-based Key Encapsulation Mechanism (KEM), targeting both:
 -	CPU architectures via OpenMP
 -	GPU architectures via OpenACC
+
 The goal is to study performance trade-offs between multicore CPUs and GPU-accelerated designs.
  
 ## Overview
@@ -16,6 +17,7 @@ Tested with:
 -	NVIDIA HPC SDK 24.3 (`nvc++`)
 -	OpenSSL development libraries (`libssl-dev`)
 -	CMake (required only for building RNGonGPU in the OpenACC branch)
+
 For Docker-based GPU execution, the host system must provide:
 -	Docker
 -	NVIDIA Container Toolkit
@@ -25,19 +27,20 @@ For Docker-based GPU execution, the host system must provide:
 -	GH200 (Grace Hopper)
 -	H100 (AMD EPYC CPU + NVIDIA GPU)
 -	A100
--	V100
+-	V100S
  
 ## Build
-OpenMP version
-```
+### OpenMP version
+```bash
 cd Codice
 make clean
 make
 ```
 
-OpenACC version
-The OpenACC version requires building the RNGonGPU dependency first.
-```
+### OpenACC version
+The OpenACC version requires building the RNGonGPU dependency first. If missing, first fetch its submodule (`git submodule update --init --recursive`).
+
+```bash
 cd RNGonGPU
 cmake -S . -B build
 cmake --build build -j
@@ -48,32 +51,30 @@ make
 ```
 
 ## Usage
-CLI mode
-`./lwe_kem N n`
+### CLI mode
+Run `./lwe_kem N n`
 where:
 -	`N` = number of iterations
 -	`n` = lattice dimension
+
 Example:
 `./lwe_kem 100 4096`
-Configuration file mode (available only for OpenMP version):
-`./lwe_kem config.txt`
-The configuration file can be used to set parameters such as:
+
+### Configuration file mode (available only for OpenMP version):
+Run `./lwe_kem config.txt`. The specified configuration file can be used to set parameters such as:
 -	`N`
 -	`n`
 -	modulus `q`
 -	noise/error distribution parameters (e.g. `eta`, `sigma`)
  
 ## Benchmark
-OpenMP
-Run:
-`./benchmark.sh`
-This produces:
-`benchmark_results_cpu.csv`
-with output format:
+### OpenMP
+Run `./benchmark.sh`.
+This produces a file named `benchmark_results_cpu.csv`
+with the following output format:
 `N;n;threads;keygen_us;encaps_us;decaps_us;total_s;mismatches`
-A run can also be executed via:
-`./lwe_kem config.txt`
-OpenACC
+
+### OpenACC
 The repository includes benchmark helper scripts such as:
 ```
 ./benchmark.sh
@@ -85,18 +86,16 @@ Depending on the script used, the output may include either:
 `N;n;keygen_us;encaps_us;decaps_us;total_s;mismatches`
  
 ## Docker
-A multi-stage Docker build is provided to compile both the OpenMP and OpenACC implementations.
-Build the image
-`docker build -t lwe-kem .`
-Run the container (CPU)
-`docker run -it lwe-kem`
-Run the container (GPU)
-`docker run -it --gpus all lwe-kem`
-Inside the container
-OpenMP version:
-`cd /workspace/OpenMP`
-OpenACC version:
-`cd /workspace/OpenACC`
+A multi-stage Dockerfile is provided to compile both the OpenMP and OpenACC implementations.
+
+Build and run the image with:
+```bash
+docker build -t lwe-kem .
+docker run -it --gpus all lwe-kem
+```
+Omit the `--gpus all` argument for CPU-only OpenMP testing.
+
+Code for both version will be already compiled inside the container under the folders `/workspace/OpenMP` and `/workspace/OpenACC`.
  
 ## Notes
 -	The OpenACC implementation uses GPU offloading and builds the RNGonGPU dependency separately.
