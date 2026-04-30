@@ -13,6 +13,9 @@
  *  h_c is a 32-element int32_t vector (SHA3-256 output = 32 bytes).
  */
 
+ static std::vector<int32_t> compute_pkh(uint64_t key_seed, const int32_t* t_ptr, uint32_t n);
+ static uint64_t derive_noise_seed(uint64_t key_seed, int32_t* m, uint32_t msg_bits);
+
 /* ---- GPU-accelerated variants with precomputed A_flat ---- */
 void Encaps_GPU_Aflat(uint64_t key_seed, uint32_t n, uint32_t q,
                       int32_t* A_flat, int32_t* t_ptr, int32_t* c_out,
@@ -30,32 +33,3 @@ void Decaps_GPU_Aflat(uint64_t key_seed, uint32_t n, uint32_t q,
                       int32_t* r_buf, int32_t* e1_buf,
                       int32_t* e2_buf, int32_t* ptxt_buf, int32_t* c_chk,
                       double* r_tmp_d, double* e1_tmp_d, uint32_t* e2_tmp_u);
-
-/* ---- on-the-fly A variants (unchanged signatures) ---- */
-void Encaps_GPU(uint64_t key_seed, uint32_t n, uint32_t q,
-                int32_t* t_ptr, int32_t* c_out,
-                std::vector<int32_t>& Hash_K,
-                int32_t* m_buf, int32_t* r_buf, int32_t* e1_buf,
-                int32_t* e2_buf, int32_t* ptxt_buf);
-
-void Decaps_GPU(uint64_t key_seed, uint32_t n, uint32_t q,
-                int32_t* t_ptr, int32_t* s_ptr, int32_t* z_ptr,
-                int32_t* c_in, std::vector<int32_t>& Hash_K,
-                int32_t* mp_buf, int32_t* dec_buf,
-                int32_t* r_buf, int32_t* e1_buf,
-                int32_t* e2_buf, int32_t* ptxt_buf, int32_t* c_chk);
-
-/* ---- CPU reference ---- */
-void Encaps(uint32_t n, uint32_t q,
-            std::vector<int32_t>& t, std::vector<int32_t>& c,
-            const std::vector<std::vector<int32_t>>& A,
-            const std::vector<std::vector<int32_t>>& AT,
-            std::vector<int32_t>& Hash_K);
-
-void Decaps(uint32_t n, uint32_t q,
-            const std::vector<int32_t>& t,
-            const std::vector<int32_t>& s_k,
-            const std::vector<int32_t>& c,
-            std::vector<int32_t>& Hash_K,
-            const std::vector<std::vector<int32_t>>& A,
-            const std::vector<std::vector<int32_t>>& AT);
