@@ -1,18 +1,31 @@
 #!/bin/bash
 
+# Usage:
+#   ./bench.sh lwe_kem_acc
+#   ./bench.sh lwe_kem_omp
+#   ./bench.sh            # defaults to ./lwe_kem
+
+EXECUTABLE=${1:-lwe_kem}
+
+if ! command -v "./$EXECUTABLE" >/dev/null 2>&1 && [ ! -x "./$EXECUTABLE" ]; then
+  echo "Error: executable './$EXECUTABLE' not found or not executable."
+  echo "Usage: $0 lwe_kem_acc | lwe_kem_omp | <other_binary>"
+  exit 1
+fi
+
 N_values=(10)
-n_values=(32 128 256 512 1024 2048 4096 8192 16384  ) 
+n_values=(32 128 256 512 1024 2048 4096 8192 16384)
 
 RESULTS=()
 
-echo "Running benchmarks..."
+echo "Running benchmarks with ./$EXECUTABLE ..."
 echo ""
 
 for N in "${N_values[@]}"; do
   for n in "${n_values[@]}"; do
     echo -n "  N=$N  n=$n ... "
     start=$(date +%s%N)
-    ./lwe_kem "$N" "$n"
+    ./"$EXECUTABLE" "$N" "$n"
     exit_code=$?
     end=$(date +%s%N)
     runtime_ms=$(( (end - start) / 1000000 ))
@@ -36,4 +49,5 @@ total=${#RESULTS[@]}
 passed=$(printf '%s\n' "${RESULTS[@]}" | awk -F',' '$5=="OK"' | wc -l)
 failed=$(( total - passed ))
 echo ""
+echo "  Executable: ./$EXECUTABLE"
 echo "  Total: $total  |  Passed: $passed  |  Failed: $failed"
