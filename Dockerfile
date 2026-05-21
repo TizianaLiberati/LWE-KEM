@@ -3,8 +3,8 @@ FROM nvcr.io/nvidia/nvhpc:24.3-devel-cuda12.3-ubuntu22.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-ARG openmp_branch=openmp_original_v2_e2_uniform
-ARG openacc_branch=integrazione-rngongpu-completaV2.0
+ARG openmp_branch=OpenMP
+ARG openacc_branch=OpenACC
 
 RUN apt-get update && \
     apt-get install -y libssl-dev wget git && \
